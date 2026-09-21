@@ -291,25 +291,6 @@ const FLOOR_LABELS = {
   "buiten": "Buiten"
 };
 
-const CORRECTIES = [
-  {
-    titel: "1. Spouwisolatie voor € 4.000 kan waarschijnlijk niet.",
-    tekst: "Bij een woning uit 1929 is de kans groot dat er geen spouw is. Zonder spouw zijn de alternatieven voorzetwanden aan de binnenkant (je levert vloeroppervlak in, alle elektra en kozijnaansluitingen moeten mee) of buitengevelisolatie (raakt het aanzicht en kan bij een tussenwoning in een straatbeeld lastig liggen). Beide kosten een veelvoud van € 4.000. Dit is de grootste post die anders moet."
-  },
-  {
-    titel: "2. HR++ glas staat dubbel in de begroting.",
-    tekst: "Het huis heeft het grotendeels al. De post van € 4.000 voor glas, kierdichting en ventilatie moet bijna volledig naar ventilatie en kierdichting verschuiven."
-  },
-  {
-    titel: "3. De verdeling tussen regulier en verduurzaming klopt niet.",
-    tekst: "Het totaal van € 30.000 is haalbaar, maar de tweedeling € 14.000 en € 16.000 niet. Verduurzaming heeft hier minder nodig dan gedacht, omdat het HR++ glas er al ligt en de vliering alleen opslag wordt. Het reguliere deel heeft juist méér nodig, voor elektra, gevelherstel en dak."
-  },
-  {
-    titel: "4. Er ontbreken onderdelen.",
-    tekst: "Het dak (pannen, dakbeschot, goten, loodwerk, schoorsteen), het dakterras van 18 m², de voor- en achtertuin, de bijkeuken, de twee bergingen, de riolering en de groepenkast staan nergens. Bij een huis van bijna honderd jaar oud zijn dat geen details."
-  }
-];
-
 const ONDERZOEK = [
   { werk: "Bouwkundige keuring als die er nog niet is", waarom: "1929, geeft de restlijst voor dak, gevel, hout, vocht", wie: "Keuringsbedrijf" },
   { werk: "Funderingsonderzoek of dossiercheck gemeente", waarom: "Alphen ligt op slappe bodem; paalrot bij vooroorlogse bouw is een reëel risico", wie: "Gemeente / funderingsloket" },
