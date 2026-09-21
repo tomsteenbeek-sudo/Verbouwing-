@@ -13,6 +13,23 @@ function imgTag(slug, alt) {
   return `<img src="images/rooms/${slug}.jpg" alt="${alt}" loading="lazy" onerror="this.remove();">`;
 }
 
+const MAX_ROOM_PHOTOS = 4;
+
+// Bouwt een strook met extra foto's (images/rooms/<slug>-2.jpg, -3.jpg, -4.jpg).
+// Onbestaande bestanden verdwijnen stilletjes; als er geen enkele extra foto is,
+// blijft de container leeg (geen "meer foto's"-kop).
+function wireExtraGallery(container, slug, alt) {
+  container.innerHTML = "";
+  for (let n = 2; n <= MAX_ROOM_PHOTOS; n++) {
+    const img = document.createElement("img");
+    img.loading = "lazy";
+    img.alt = alt;
+    img.src = `images/rooms/${slug}-${n}.jpg`;
+    img.addEventListener("error", () => img.remove());
+    container.appendChild(img);
+  }
+}
+
 async function loadAll() {
   [ROOMS, WORKDAYS, PEOPLE, TASKS, MATERIALS] = await Promise.all([
     Rooms.list(), Workdays.list(), People.list(), Tasks.list(), Materials.list(),
@@ -81,10 +98,11 @@ function renderDetail(slug) {
   const materials = MATERIALS.filter((m) => m.room_id === room.id);
   document.getElementById("kamers-root").innerHTML = `
     <a href="kamers.html" class="btn-secondary" style="display:inline-block;margin-bottom:18px;">← Terug naar kamers</a>
-    <div class="overlay-img" style="border-radius:var(--radius);margin-bottom:20px;">
+    <div class="overlay-img" style="border-radius:var(--radius);margin-bottom:10px;">
       <div class="ph-fallback"><div class="ph-icon">🏠</div>Nog geen ontwerpafbeelding<br>plaats images/rooms/${room.slug}.jpg</div>
       ${imgTag(room.slug, room.name)}
     </div>
+    <div class="room-extra-gallery" id="room-extra-gallery" style="margin-bottom:20px;"></div>
     <div class="room-floor">${FLOOR_LABELS[room.floor]}${room.is_out_of_scope ? ' · <span class="badge klaar">Buiten scope</span>' : ""}</div>
     <h2 style="margin-bottom:14px;">${escapeHtml(room.name)}</h2>
     <div class="compare">
@@ -103,6 +121,8 @@ function renderDetail(slug) {
     <ul class="plain-list">${materials.map((m) => `<li>${escapeHtml(m.name)} — <span class="pill ${m.status === "In huis" ? "gedaan" : "open"}">${escapeHtml(m.status)}</span></li>`).join("")}</ul>
     <p style="font-size:0.82rem;"><a href="materialen.html">Beheer materialen →</a></p>` : ""}
   `;
+
+  wireExtraGallery(document.getElementById("room-extra-gallery"), room.slug, room.name);
 
   const ctx = { rooms: ROOMS, workdays: WORKDAYS, people: PEOPLE, onChange: render };
   wireTaskCards(document.getElementById("task-list"), tasks, ctx);

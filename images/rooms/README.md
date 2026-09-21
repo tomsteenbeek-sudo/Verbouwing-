@@ -24,3 +24,10 @@ kamerdetail op de website — er hoeft niets aangepast te worden in de code.
 | gevel-en-dak.jpg | Gevel en dak |
 
 Zolang een bestand ontbreekt, toont de kaart een neutrale placeholder ("afbeelding volgt").
+
+## Meerdere foto's per kamer
+
+Heb je meer dan één foto van een kamer? Voeg extra bestanden toe met een volgnummer:
+`<slug>-2.jpg`, `<slug>-3.jpg`, `<slug>-4.jpg` (tot 4 foto's per kamer). Ze verschijnen
+automatisch als een fotostrip onder de hoofdfoto op de kamerdetailpagina — de
+kamerkaart in het overzicht blijft altijd de hoofdfoto (`<slug>.jpg`) tonen.
