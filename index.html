@@ -15,18 +15,21 @@
 <nav class="site-nav">
   <div class="wrap">
     <a class="brand" href="#top">Verbouwplan <span>Leliestraat 27</span></a>
+    <button class="nav-toggle" id="nav-toggle" aria-label="Menu">
+      <span></span><span></span><span></span>
+    </button>
     <div class="nav-links">
       <a href="#overzicht">Overzicht</a>
       <a href="#kamers">Kamers</a>
       <a href="#plattegronden">Plattegronden</a>
       <a href="#verduurzaming">Verduurzaming</a>
       <a href="#budget">Budget</a>
-      <a href="#planning">Planning</a>
-      <a href="#besluiten">Besluiten</a>
+      <a href="#uitvoeringsplanning">Uitvoeringsplanning</a>
+      <a href="#actieplanning">Actieplanning</a>
       <a href="#gereedschap">Gereedschap</a>
-      <a href="#acties">Actielijst</a>
       <a href="#risicos">Risico's</a>
       <a href="#oplevering">Oplevering</a>
+      <a href="#buiten-scope">Buiten scope</a>
     </div>
   </div>
 </nav>
@@ -62,12 +65,6 @@
       </div>
       <div class="profile-grid" id="profile-grid"></div>
       <p class="source-note" id="source-note"></p>
-
-      <div style="margin-top:36px;">
-        <h3 style="font-size:1.05rem;">Buiten scope</h3>
-        <p style="color:var(--text-muted);font-size:0.9rem;margin-top:-6px;">Het geld hoeft niet naar deze onderdelen: al vernieuwd, of bewust buiten scope gehouden.</p>
-        <div class="done-grid" id="done-grid"></div>
-      </div>
     </div>
   </section>
 
@@ -142,14 +139,23 @@
         <p>Totaal blijft € 30.000. De verdeling verschuift: minder naar gevelisolatie en glas, meer naar elektra, gevelherstel en dak. Schilderwerk en klein timmerwerk doe je zelf, dus daar staat alleen materiaal.</p>
       </div>
 
-      <div class="card pad" id="budget-bars" style="margin-bottom:28px;"></div>
+      <div class="two-col" style="margin-bottom:28px;">
+        <div>
+          <h3 style="font-size:0.98rem;">Begroot</h3>
+          <div class="card pad" id="budget-bars"></div>
+        </div>
+        <div>
+          <h3 style="font-size:0.98rem;">Werkelijk vs. doel</h3>
+          <div class="card pad" id="budget-werkelijk"></div>
+        </div>
+      </div>
 
       <div class="two-col">
         <div>
           <h3 style="font-size:0.98rem;">Verduurzaming</h3>
           <div class="table-scroll">
             <table>
-              <thead><tr><th>Maatregel</th><th>Bedrag</th><th>Uitvoering</th></tr></thead>
+              <thead><tr><th>Maatregel</th><th>Begroot</th><th>Werkelijk</th><th>Uitvoering</th></tr></thead>
               <tbody id="budget-verduurzaming-body"></tbody>
             </table>
           </div>
@@ -158,7 +164,7 @@
           <h3 style="font-size:0.98rem;">Regulier</h3>
           <div class="table-scroll">
             <table>
-              <thead><tr><th>Post</th><th>Bedrag</th><th>Uitvoering</th></tr></thead>
+              <thead><tr><th>Post</th><th>Begroot</th><th>Werkelijk</th><th>Uitvoering</th></tr></thead>
               <tbody id="budget-regulier-body"></tbody>
             </table>
           </div>
@@ -174,67 +180,48 @@
     </div>
   </section>
 
-  <section class="section" id="planning">
+  <section class="section" id="uitvoeringsplanning">
     <div class="wrap">
       <div class="section-head">
-        <div class="eyebrow">Uitvoeringsvolgorde</div>
-        <h2>Planning</h2>
-        <p>De volgorde is gebouwd op vier harde afhankelijkheden. Daaromheen mag geschoven worden.</p>
+        <div class="eyebrow">Wat doen we vandaag?</div>
+        <h2>Uitvoeringsplanning</h2>
+        <p>De praktische dagplanning voor tijdens het klussen. Globale fasering en harde afhankelijkheden bovenaan, daaronder de klusdagen met een echte checklist per dag.</p>
       </div>
+
       <div class="flow" id="fase-flow"></div>
-      <ol class="rule-list" id="harde-volgorde" style="margin-bottom:30px;"></ol>
+      <ol class="rule-list" id="harde-volgorde"></ol>
+      <p style="color:var(--text-muted);font-size:0.88rem;margin-top:14px;margin-bottom:30px;" id="planning-toelichting"></p>
 
-      <h3 style="font-size:0.98rem;">Indicatieve planning</h3>
-      <p style="color:var(--text-muted);font-size:0.85rem;margin-top:-6px;">Vul zelf een datum per fase in — die wordt lokaal onthouden.</p>
-      <div class="table-scroll">
-        <table>
-          <thead><tr><th>Periode</th><th>Werk</th><th>Afhankelijk van</th><th>Datum</th></tr></thead>
-          <tbody id="planning-body"></tbody>
-        </table>
+      <h3 style="font-size:0.98rem;">Klusdagen</h3>
+      <p style="color:var(--text-muted);font-size:0.85rem;margin-top:-6px;" id="klusdagen-voortgang"></p>
+      <div class="filter-row">
+        <button class="filter-btn klusdag-filter-btn active" data-filter="alle">Alle</button>
+        <button class="filter-btn klusdag-filter-btn" data-filter="vandaag">Vandaag</button>
+        <button class="filter-btn klusdag-filter-btn" data-filter="komende">Komende klusdagen</button>
+        <button class="filter-btn klusdag-filter-btn" data-filter="gereed">Gereed</button>
       </div>
-      <p style="color:var(--text-muted);font-size:0.88rem;margin-top:14px;" id="planning-toelichting"></p>
+      <div class="klusdag-list" id="klusdagen-list"></div>
     </div>
   </section>
 
-  <section class="section" id="besluiten">
+  <section class="section" id="actieplanning">
     <div class="wrap">
       <div class="section-head">
-        <div class="eyebrow">Nog te nemen</div>
-        <h2>Openstaande besluiten</h2>
-        <p>Gesorteerd op hoe laat je ze nog kunt nemen. De bovenste blokkeren het meeste.</p>
+        <div class="eyebrow">Wat moet ik nog regelen?</div>
+        <h2>Actieplanning</h2>
+        <p>Alles wat vooraf uitgezocht, besloten, aangevraagd, ingepland of gekocht moet worden, zodat de verbouwing niet stilvalt. Wijs een persoon toe — wordt lokaal onthouden.</p>
       </div>
-      <div class="table-scroll">
-        <table>
-          <thead><tr><th>Besluit</th><th>Toelichting</th><th>Status</th></tr></thead>
-          <tbody id="besluiten-body"></tbody>
-        </table>
+      <p style="color:var(--text-muted);font-size:0.85rem;margin-top:-10px;" id="actieplanning-voortgang"></p>
+      <div class="filter-row">
+        <button class="filter-btn actie-filter-btn active" data-filter="alle">Alle</button>
+        <button class="filter-btn actie-filter-btn" data-filter="Uitzoeken">Uitzoeken</button>
+        <button class="filter-btn actie-filter-btn" data-filter="Beslissen">Beslissen</button>
+        <button class="filter-btn actie-filter-btn" data-filter="Offerte aanvragen">Offerte aanvragen</button>
+        <button class="filter-btn actie-filter-btn" data-filter="Vakman inplannen">Vakman inplannen</button>
+        <button class="filter-btn actie-filter-btn" data-filter="Bestellen / inkopen">Bestellen / inkopen</button>
+        <button class="filter-btn actie-filter-btn" data-filter="Administratie / subsidie">Administratie / subsidie</button>
       </div>
-    </div>
-  </section>
-
-  <section class="section" id="acties">
-    <div class="wrap">
-      <div class="section-head">
-        <div class="eyebrow">Voorbereiding</div>
-        <h2>Uit te zoeken en actielijst</h2>
-      </div>
-
-      <div class="two-col">
-        <div class="card check-card">
-          <h3>Uit te zoeken</h3>
-          <ul class="action-list" id="uit-te-zoeken-list"></ul>
-        </div>
-        <div>
-          <h3 style="font-size:0.98rem;">Acties</h3>
-          <p style="color:var(--text-muted);font-size:0.85rem;margin-top:-6px;">Wijs een persoon toe en plan een datum — wordt lokaal onthouden.</p>
-          <div class="table-scroll">
-            <table>
-              <thead><tr><th>Actie</th><th>Wie</th><th>Wanneer</th><th>Status</th></tr></thead>
-              <tbody id="acties-body"></tbody>
-            </table>
-          </div>
-        </div>
-      </div>
+      <div id="actieplanning-list"></div>
     </div>
   </section>
 
@@ -288,6 +275,17 @@
           <ul class="action-list" id="oplevering-dossier"></ul>
         </div>
       </div>
+    </div>
+  </section>
+
+  <section class="section" id="buiten-scope">
+    <div class="wrap">
+      <div class="section-head">
+        <div class="eyebrow">Niet in dit project</div>
+        <h2>Buiten scope</h2>
+        <p>Het geld hoeft niet naar deze onderdelen: al vernieuwd, of bewust buiten scope gehouden.</p>
+      </div>
+      <div class="done-grid" id="done-grid"></div>
     </div>
   </section>
 

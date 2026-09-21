@@ -74,8 +74,8 @@ function renderHero() {
   const stats = [
     { n: ROOMS.length, l: "Ruimtes in scope" },
     { n: euro(BUDGET.totaal), l: "Totaalbudget" },
-    { n: UITVOERING.planning.length + " fases", l: "Indicatieve planning" },
-    { n: ACTIES.length, l: "Openstaande acties" }
+    { n: KLUSDAGEN.length + " klusdagen", l: "Uitvoeringsplanning" },
+    { n: openActiesCount(), l: "Openstaande acties" }
   ];
   document.getElementById("stat-row").innerHTML = stats.map(s =>
     `<div class="stat-card"><div class="n">${s.n}</div><div class="l">${s.l}</div></div>`
@@ -262,21 +262,48 @@ function computeBudgetTotal() {
   return subtotalOf("verduurzaming") + subtotalOf("regulier") + getOnvoorzien();
 }
 
+function getWerkelijk(section, i) {
+  const v = STATE[`werkelijk::${section}::${i}`];
+  return (typeof v === "number" && !isNaN(v)) ? v : 0;
+}
+function setWerkelijk(section, i, val) {
+  const key = `werkelijk::${section}::${i}`;
+  if (isNaN(val) || val === 0) delete STATE[key]; else STATE[key] = val;
+  saveState(STATE);
+}
+function werkelijkSubtotaal(section) {
+  return BUDGET[section].rows.reduce((sum, _, i) => sum + getWerkelijk(section, i), 0);
+}
+function getWerkelijkOnvoorzien() {
+  const v = STATE["werkelijk::onvoorzien"];
+  return (typeof v === "number" && !isNaN(v)) ? v : 0;
+}
+function setWerkelijkOnvoorzien(val) {
+  if (isNaN(val) || val === 0) delete STATE["werkelijk::onvoorzien"]; else STATE["werkelijk::onvoorzien"] = val;
+  saveState(STATE);
+}
+function werkelijkTotaal() {
+  return werkelijkSubtotaal("verduurzaming") + werkelijkSubtotaal("regulier") + getWerkelijkOnvoorzien();
+}
+
 function budgetRowHtml(section, r, i) {
   return `<tr><td>${r.post}</td><td class="num">
       <span class="euro-input"><span class="prefix">€</span><input type="number" class="inline-input num-input" min="0" step="10"
         data-section="${section}" data-i="${i}" value="${getBudgetAmount(section, i)}"></span>
+    </td><td class="num">
+      <span class="euro-input"><span class="prefix">€</span><input type="number" class="inline-input num-input werkelijk-input" min="0" step="10"
+        data-section="${section}" data-i="${i}" value="${getWerkelijk(section, i) || ""}" placeholder="0"></span>
     </td><td>${r.uitvoering}</td></tr>`;
 }
 
 function renderBudget() {
   document.getElementById("budget-verduurzaming-body").innerHTML =
     BUDGET.verduurzaming.rows.map((r, i) => budgetRowHtml("verduurzaming", r, i)).join("") +
-    `<tr><td><strong>Subtotaal</strong></td><td class="num"><strong id="subtotal-verduurzaming-amt">${euro(subtotalOf("verduurzaming"))}</strong></td><td></td></tr>`;
+    `<tr><td><strong>Subtotaal</strong></td><td class="num"><strong id="subtotal-verduurzaming-amt">${euro(subtotalOf("verduurzaming"))}</strong></td><td class="num"><strong id="werkelijk-verduurzaming-amt">${euro(werkelijkSubtotaal("verduurzaming"))}</strong></td><td></td></tr>`;
 
   document.getElementById("budget-regulier-body").innerHTML =
     BUDGET.regulier.rows.map((r, i) => budgetRowHtml("regulier", r, i)).join("") +
-    `<tr><td><strong>Subtotaal</strong></td><td class="num"><strong id="subtotal-regulier-amt">${euro(subtotalOf("regulier"))}</strong></td><td></td></tr>`;
+    `<tr><td><strong>Subtotaal</strong></td><td class="num"><strong id="subtotal-regulier-amt">${euro(subtotalOf("regulier"))}</strong></td><td class="num"><strong id="werkelijk-regulier-amt">${euro(werkelijkSubtotaal("regulier"))}</strong></td><td></td></tr>`;
 
   document.getElementById("budget-bars").innerHTML = `
     <div class="budget-bar-row" data-bar="reg">
@@ -306,11 +333,28 @@ function renderBudget() {
     </div>
     <div id="budget-delta" class="note" style="margin-top:10px;"></div>`;
 
+  document.getElementById("budget-werkelijk").innerHTML = `
+    <div class="budget-bar-row"><div class="label">Begroot totaal</div><div></div><div class="amt"><strong id="werkelijk-begroot-amt"></strong></div></div>
+    <div class="budget-bar-row"><div class="label">Doel</div><div></div><div class="amt"><strong>${euro(BUDGET.totaal)}</strong></div></div>
+    <div class="budget-bar-row"><div class="label"><strong>Werkelijk uitgegeven</strong></div><div></div>
+      <div class="amt"><span class="euro-input"><span class="prefix">€</span><input type="number" class="inline-input num-input werkelijk-input" min="0" step="10" id="onvoorzien-werkelijk-input" value="${getWerkelijkOnvoorzien() || ""}" placeholder="0"></span></div>
+    </div>
+    <div class="budget-bar-row" style="font-size:0.78rem;color:var(--text-muted);"><div class="label"></div><div></div><div class="amt">↑ onvoorzien werkelijk</div></div>
+    <div class="budget-bar-row" style="margin-top:14px;border-top:1px solid var(--border);padding-top:14px;">
+      <div class="label"><strong>Totaal werkelijk</strong></div><div></div>
+      <div class="amt"><strong id="werkelijk-total-amt"></strong></div>
+    </div>
+    <div id="werkelijk-delta" class="note" style="margin-top:10px;"></div>`;
+
   document.getElementById("budget-verduurzaming-body").addEventListener("input", handleBudgetInput);
   document.getElementById("budget-regulier-body").addEventListener("input", handleBudgetInput);
   document.getElementById("onvoorzien-input").addEventListener("input", (e) => {
     setOnvoorzien(parseFloat(e.target.value));
     updateBudgetTotals();
+  });
+  document.getElementById("onvoorzien-werkelijk-input").addEventListener("input", (e) => {
+    setWerkelijkOnvoorzien(parseFloat(e.target.value));
+    updateWerkelijkTotalen();
   });
 
   document.getElementById("budget-niet-in").textContent = BUDGET.nietInBegroting;
@@ -319,15 +363,42 @@ function renderBudget() {
   ).join("");
 
   updateBudgetTotals();
+  updateWerkelijkTotalen();
 }
 
 function handleBudgetInput(e) {
   const input = e.target.closest(".num-input");
   if (!input) return;
-  setBudgetAmount(input.dataset.section, Number(input.dataset.i), parseFloat(input.value));
-  document.getElementById("subtotal-verduurzaming-amt").textContent = euro(subtotalOf("verduurzaming"));
-  document.getElementById("subtotal-regulier-amt").textContent = euro(subtotalOf("regulier"));
-  updateBudgetTotals();
+  const section = input.dataset.section, i = Number(input.dataset.i);
+  if (input.classList.contains("werkelijk-input")) {
+    setWerkelijk(section, i, parseFloat(input.value));
+    document.getElementById(`werkelijk-${section}-amt`).textContent = euro(werkelijkSubtotaal(section));
+    updateWerkelijkTotalen();
+  } else {
+    setBudgetAmount(section, i, parseFloat(input.value));
+    document.getElementById(`subtotal-${section}-amt`).textContent = euro(subtotalOf(section));
+    updateBudgetTotals();
+  }
+}
+
+function updateWerkelijkTotalen() {
+  const begroot = computeBudgetTotal();
+  const werkelijk = werkelijkTotaal();
+  const target = BUDGET.totaal;
+  document.getElementById("werkelijk-begroot-amt").textContent = euro(begroot);
+  document.getElementById("werkelijk-total-amt").textContent = euro(werkelijk);
+  const delta = document.getElementById("werkelijk-delta");
+  const diffTarget = werkelijk - target;
+  if (werkelijk === 0) {
+    delta.className = "note";
+    delta.textContent = "Nog niets ingevuld als werkelijk uitgegeven.";
+  } else if (diffTarget > 0) {
+    delta.className = "note warn";
+    delta.textContent = `${euro(diffTarget)} boven het doel van ${euro(target)}.`;
+  } else {
+    delta.className = "note";
+    delta.textContent = `${euro(-diffTarget)} onder het doel van ${euro(target)} — nog ${euro(target - werkelijk)} over.`;
+  }
 }
 
 function updateBudgetTotals() {
@@ -373,67 +444,210 @@ function renderOnderzoek() {
   ).join("");
 }
 
-/* ---------- Planning ---------- */
-function renderPlanning() {
+/* ---------- Uitvoeringsplanning: klusdagen ---------- */
+let klusdagFilter = "alle";
+
+function klusdagStatus(dag) {
+  const total = dag.taken.length;
+  const done = dag.taken.reduce((n, _, i) => n + (isChecked(`klusdag-${dag.id}`, i) ? 1 : 0), 0);
+  if (total > 0 && done === total) return "Gereed";
+  const datum = getText(`klusdag::datum::${dag.id}`, "");
+  const today = new Date().toISOString().slice(0, 10);
+  if (datum && datum === today) return "Vandaag";
+  if (done > 0) return "Bezig";
+  return "Gepland";
+}
+function prereqWarning(dag) {
+  if (!dag.vereistDagen || !dag.vereistDagen.length) return null;
+  const notDone = dag.vereistDagen.filter(id => {
+    const prereq = KLUSDAGEN.find(k => k.id === id);
+    return prereq && klusdagStatus(prereq) !== "Gereed";
+  });
+  if (!notDone.length) return null;
+  return `Wacht op klusdag ${notDone.join(", ")} — nog niet gereed.`;
+}
+function filterKlusdagen(dagen) {
+  if (klusdagFilter === "alle") return dagen;
+  const today = new Date().toISOString().slice(0, 10);
+  return dagen.filter(d => {
+    const status = klusdagStatus(d);
+    if (klusdagFilter === "vandaag") return getText(`klusdag::datum::${d.id}`, "") === today;
+    if (klusdagFilter === "komende") return status !== "Gereed";
+    if (klusdagFilter === "gereed") return status === "Gereed";
+    return true;
+  });
+}
+
+function klusdagCardHtml(dag) {
+  const status = klusdagStatus(dag);
+  const statusClass = status === "Gereed" ? "gedaan" : (status === "Vandaag" || status === "Bezig" ? "bezig" : "open");
+  const prereqWarn = prereqWarning(dag);
+  const datum = getText(`klusdag::datum::${dag.id}`, "");
+  const total = dag.taken.length;
+  const done = dag.taken.reduce((n, _, i) => n + (isChecked(`klusdag-${dag.id}`, i) ? 1 : 0), 0);
+  const pct = total ? Math.round((done / total) * 100) : 0;
+
+  return `
+    <article class="klusdag-card card" data-id="${dag.id}">
+      <div class="klusdag-head">
+        <div>
+          <div class="klusdag-nr">Klusdag ${dag.id}${dag.extern ? ' <span class="badge extern">Extern</span>' : ""}</div>
+          <h3>${dag.naam}</h3>
+          <div class="klusdag-meta">${dag.fase} · ${dag.uitvoerder}${dag.ruimtes.length ? " · " + dag.ruimtes.join(", ") : ""}</div>
+        </div>
+        <div class="klusdag-status">
+          <span class="pill ${statusClass}">${status}</span>
+          <input type="date" class="inline-input date-input klusdag-date" data-dagid="${dag.id}" value="${datum}">
+        </div>
+      </div>
+      <div class="mini-progress" style="margin:10px 0;"><i style="width:${pct}%"></i></div>
+      ${prereqWarn ? `<div class="note warn">⏳ ${prereqWarn}</div>` : ""}
+      ${dag.droogtijd ? `<div class="note">⏳ Droog-/wachttijd: ${dag.droogtijd}</div>` : ""}
+      <div class="klusdag-field"><strong>Wat moet vooraf klaar zijn:</strong> ${dag.vereist}</div>
+      ${dag.materiaal.length ? `
+      <div class="klusdag-field">
+        <strong>Benodigd materiaal</strong>
+        <ul class="material-list">
+          ${dag.materiaal.map((m, i) => `<li>${m.naam} <input type="text" class="inline-input qty-input klusdag-qty" data-key="klusdag-mat::${dag.id}::${i}" value="${getText(`klusdag-mat::${dag.id}::${i}`, m.aantal)}" placeholder="hoeveelheid"></li>`).join("")}
+        </ul>
+      </div>` : ""}
+      <div class="klusdag-field">
+        <strong>Werkzaamheden</strong>
+        <ul class="action-list klusdag-taken" data-dagid="${dag.id}">
+          ${dag.taken.map((t, i) => actionItemHtml(`klusdag-${dag.id}`, i, t)).join("")}
+        </ul>
+      </div>
+      ${dag.opmerkingen ? `<div class="klusdag-field opmerkingen"><strong>Opmerkingen:</strong> ${dag.opmerkingen}</div>` : ""}
+    </article>`;
+}
+
+function renderKlusdagenList() {
+  const container = document.getElementById("klusdagen-list");
+  if (!container) return;
+  const dagen = filterKlusdagen(KLUSDAGEN);
+  const gereedCount = KLUSDAGEN.filter(d => klusdagStatus(d) === "Gereed").length;
+  const countEl = document.getElementById("klusdagen-voortgang");
+  if (countEl) countEl.textContent = `${gereedCount} van ${KLUSDAGEN.length} klusdagen gereed`;
+  container.innerHTML = dagen.length ? dagen.map(klusdagCardHtml).join("") : `<p class="empty-hint">Geen klusdagen in dit filter.</p>`;
+  wireKlusdagen();
+}
+
+function wireKlusdagen() {
+  const container = document.getElementById("klusdagen-list");
+  container.querySelectorAll(".klusdag-taken").forEach(list => {
+    list.addEventListener("change", (e) => {
+      const cb = e.target.closest("input[type=checkbox]");
+      if (!cb) return;
+      setChecked(cb.dataset.slug, Number(cb.dataset.i), cb.checked);
+      renderKlusdagenList();
+    });
+  });
+  container.querySelectorAll(".klusdag-date").forEach(input => {
+    input.addEventListener("change", () => {
+      setText(`klusdag::datum::${input.dataset.dagid}`, input.value);
+      renderKlusdagenList();
+    });
+  });
+  container.querySelectorAll(".klusdag-qty").forEach(input => {
+    input.addEventListener("input", () => setText(input.dataset.key, input.value));
+  });
+}
+
+document.addEventListener("click", (e) => {
+  const btn = e.target.closest(".klusdag-filter-btn");
+  if (!btn) return;
+  document.querySelectorAll(".klusdag-filter-btn").forEach(b => b.classList.remove("active"));
+  btn.classList.add("active");
+  klusdagFilter = btn.dataset.filter;
+  renderKlusdagenList();
+});
+
+function renderUitvoeringsplanning() {
   document.getElementById("fase-flow").innerHTML = UITVOERING.fases.map((f, i) =>
-    (i > 0 ? '<span class="flow-arrow">→</span>' : '') + `<div class="flow-step">${f}</div>`
+    (i > 0 ? '<span class="flow-arrow">→</span>' : "") + `<div class="flow-step">${f}</div>`
   ).join("");
   document.getElementById("harde-volgorde").innerHTML = UITVOERING.hardeVolgorde.map((r, i) =>
     `<li><span class="num">${i + 1}</span><span>${r}</span></li>`
   ).join("");
-  document.getElementById("planning-body").innerHTML = UITVOERING.planning.map((p, i) => `
-    <tr>
-      <td><strong>${p.periode}</strong></td>
-      <td>${p.werk}</td>
-      <td>${p.afhankelijk}</td>
-      <td><input type="date" class="inline-input date-input" id="planning-datum-${i}" value="${getText(`planning::datum::${i}`, "")}"></td>
-    </tr>`).join("");
-  document.getElementById("planning-body").querySelectorAll(".date-input").forEach((input, i) => {
-    input.addEventListener("change", () => setText(`planning::datum::${i}`, input.value));
-  });
   document.getElementById("planning-toelichting").textContent = UITVOERING.toelichting;
+  renderKlusdagenList();
 }
 
-/* ---------- Besluiten ---------- */
-function renderBesluiten() {
-  document.getElementById("besluiten-body").innerHTML = BESLUITEN.map(b => {
-    const isDone = b.status === "Gedaan";
-    return `<tr><td>${b.besluit}</td><td>${b.toelichting}</td><td><span class="pill ${isDone ? 'gedaan' : 'open'}">${b.status}</span></td></tr>`;
+/* ---------- Actieplanning: samengevoegde besluiten, uitzoekpunten en acties ---------- */
+let actieFilter = "alle";
+const ACTIE_CATEGORIEEN = ["Uitzoeken", "Beslissen", "Offerte aanvragen", "Vakman inplannen", "Bestellen / inkopen", "Administratie / subsidie"];
+
+function getActieStatus(i) {
+  return getText(`actieplanning::status::${i}`, ACTIEPLANNING[i].status);
+}
+function toggleActieDone(i, done) {
+  const val = done ? "Gedaan" : "Open";
+  setText(`actieplanning::status::${i}`, val === ACTIEPLANNING[i].status ? "" : val);
+}
+function openActiesCount() {
+  return ACTIEPLANNING.filter((a, i) => getActieStatus(i) !== "Gedaan").length;
+}
+
+function actieRowHtml(a, i) {
+  const status = getActieStatus(i);
+  const isDone = status === "Gedaan";
+  const blokkeert = (!isDone && a.blokkeertDag && a.blokkeertDag.length)
+    ? `<span class="badge blokkeert" title="Blokkeert klusdag ${a.blokkeertDag.join(", ")}">Blokkeert planning</span>` : "";
+  return `
+    <li class="actie-row ${isDone ? "done" : ""}">
+      <input type="checkbox" class="actie-done-cb" data-i="${i}" ${isDone ? "checked" : ""} aria-label="Gedaan">
+      <div class="actie-body">
+        <div class="actie-title">${a.actie} ${blokkeert}</div>
+        <div class="actie-meta">
+          <span class="meta-item">📅 ${a.deadline}</span>
+          <span class="meta-item">👤 <input type="text" class="inline-input text-input actie-wie" data-key="actieplanning::wie::${i}" value="${getText(`actieplanning::wie::${i}`, a.wie)}"></span>
+          ${a.afhankelijkVan && a.afhankelijkVan !== "—" ? `<span class="meta-item">⛓ ${a.afhankelijkVan}</span>` : ""}
+          ${a.doorlooptijd && a.doorlooptijd !== "—" ? `<span class="meta-item">⏱ ${a.doorlooptijd}</span>` : ""}
+        </div>
+        ${a.opmerkingen ? `<div class="actie-note">${a.opmerkingen}</div>` : ""}
+      </div>
+    </li>`;
+}
+
+function renderActieplanning() {
+  const container = document.getElementById("actieplanning-list");
+  if (!container) return;
+  const indexed = ACTIEPLANNING.map((a, i) => [a, i]);
+  const filtered = actieFilter === "alle" ? indexed : indexed.filter(([a]) => a.categorie === actieFilter);
+  const groups = ACTIE_CATEGORIEEN.map(cat => {
+    const items = filtered.filter(([a]) => a.categorie === cat);
+    if (!items.length) return "";
+    return `<div class="actie-group"><h3>${cat}</h3><ul class="action-list actie-list">${items.map(([a, i]) => actieRowHtml(a, i)).join("")}</ul></div>`;
   }).join("");
+  container.innerHTML = groups || `<p class="empty-hint">Geen acties in dit filter.</p>`;
+  wireActieplanning();
+
+  const countEl = document.getElementById("actieplanning-voortgang");
+  if (countEl) countEl.textContent = `${openActiesCount()} van ${ACTIEPLANNING.length} acties nog open`;
 }
 
-/* ---------- Uit te zoeken + acties ---------- */
-function renderActielijst() {
-  document.getElementById("uit-te-zoeken-list").innerHTML = UIT_TE_ZOEKEN.map((u, i) => {
-    const key = `uitzoeken::${i}`;
-    const checked = !!STATE[key];
-    return `<li class="${checked ? 'checked' : ''}">
-      <input type="checkbox" id="uz-${i}" data-key="${key}" ${checked ? 'checked' : ''}>
-      <label for="uz-${i}">${u}</label></li>`;
-  }).join("");
-  document.getElementById("uit-te-zoeken-list").addEventListener("change", (e) => {
-    const cb = e.target.closest("input[type=checkbox]");
-    if (!cb) return;
-    if (cb.checked) STATE[cb.dataset.key] = true; else delete STATE[cb.dataset.key];
-    saveState(STATE);
-    cb.closest("li").classList.toggle("checked", cb.checked);
+function wireActieplanning() {
+  const container = document.getElementById("actieplanning-list");
+  container.querySelectorAll(".actie-done-cb").forEach(cb => {
+    cb.addEventListener("change", () => {
+      toggleActieDone(Number(cb.dataset.i), cb.checked);
+      renderActieplanning();
+      renderHero();
+    });
   });
-
-  document.getElementById("acties-body").innerHTML = ACTIES.map((a, i) => `
-    <tr>
-      <td>${a.actie}</td>
-      <td><input type="text" class="inline-input text-input" data-key="actie-wie::${i}" value="${getText(`actie-wie::${i}`, a.wie)}" placeholder="Naam"></td>
-      <td>
-        <div style="color:var(--text-muted);font-size:0.82rem;margin-bottom:4px;">${a.wanneer}</div>
-        <input type="date" class="inline-input date-input" data-key="actie-datum::${i}" value="${getText(`actie-datum::${i}`, "")}">
-      </td>
-      <td><span class="pill open">${a.status}</span></td>
-    </tr>`).join("");
-  document.getElementById("acties-body").querySelectorAll(".text-input, .date-input").forEach(input => {
-    const evt = input.type === "date" ? "change" : "input";
-    input.addEventListener(evt, () => setText(input.dataset.key, input.value));
+  container.querySelectorAll(".actie-wie").forEach(input => {
+    input.addEventListener("input", () => setText(input.dataset.key, input.value));
   });
 }
+
+document.addEventListener("click", (e) => {
+  const btn = e.target.closest(".actie-filter-btn");
+  if (!btn) return;
+  document.querySelectorAll(".actie-filter-btn").forEach(b => b.classList.remove("active"));
+  btn.classList.add("active");
+  actieFilter = btn.dataset.filter;
+  renderActieplanning();
+});
 
 /* ---------- Risico's ---------- */
 function renderRisicos() {
@@ -478,13 +692,18 @@ function renderTools() {
   const defaultHtml = TOOLS.map((t, i) => {
     const key = `tool::${i}`;
     const checked = !!STATE[key];
-    return `<li class="${checked ? "checked" : ""}"><input type="checkbox" id="tool-${i}" data-key="${key}" ${checked ? "checked" : ""}><label for="tool-${i}">${t}</label></li>`;
+    return `<li class="${checked ? "checked" : ""}"><input type="checkbox" id="tool-${i}" data-key="${key}" ${checked ? "checked" : ""}>
+      <label for="tool-${i}">${t.naam}</label>
+      <input type="text" class="inline-input qty-input" data-key="tool-aantal::${i}" value="${getText(`tool-aantal::${i}`, t.aantal)}" placeholder="hoeveelheid"></li>`;
   }).join("");
   const custom = getList("tools-custom");
   const customHtml = custom.map((t, i) => {
     const key = `tool-custom::${i}`;
     const checked = !!STATE[key];
-    return `<li class="${checked ? "checked" : ""}"><input type="checkbox" id="toolc-${i}" data-key="${key}" ${checked ? "checked" : ""}><label for="toolc-${i}">${t}</label><button type="button" class="item-delete" data-ci="${i}" aria-label="Verwijderen">✕</button></li>`;
+    return `<li class="${checked ? "checked" : ""}"><input type="checkbox" id="toolc-${i}" data-key="${key}" ${checked ? "checked" : ""}>
+      <label for="toolc-${i}">${t}</label>
+      <input type="text" class="inline-input qty-input" data-key="tool-aantal-custom::${i}" value="${getText(`tool-aantal-custom::${i}`, "")}" placeholder="hoeveelheid">
+      <button type="button" class="item-delete" data-ci="${i}" aria-label="Verwijderen">✕</button></li>`;
   }).join("");
   wrap.innerHTML = defaultHtml + customHtml;
   wrap.querySelectorAll("input[type=checkbox]").forEach(cb => {
@@ -494,13 +713,16 @@ function renderTools() {
       cb.closest("li").classList.toggle("checked", cb.checked);
     });
   });
+  wrap.querySelectorAll(".qty-input").forEach(input => {
+    input.addEventListener("input", () => setText(input.dataset.key, input.value));
+  });
   wrap.querySelectorAll(".item-delete").forEach(btn => {
     btn.addEventListener("click", () => {
       const idx = Number(btn.dataset.ci);
       const arr = getList("tools-custom");
       arr.splice(idx, 1);
       setList("tools-custom", arr);
-      Object.keys(STATE).filter(k => k.startsWith("tool-custom::")).forEach(k => delete STATE[k]);
+      Object.keys(STATE).filter(k => k.startsWith("tool-custom::") || k.startsWith("tool-aantal-custom::")).forEach(k => delete STATE[k]);
       saveState(STATE);
       renderTools();
     });
@@ -575,6 +797,14 @@ function renderFloorplans() {
     </div>`).join("");
 }
 
+/* ---------- Mobiel menu ---------- */
+document.getElementById("nav-toggle")?.addEventListener("click", () => {
+  document.querySelector(".site-nav").classList.toggle("nav-open");
+});
+document.querySelectorAll(".nav-links a").forEach(a => {
+  a.addEventListener("click", () => document.querySelector(".site-nav").classList.remove("nav-open"));
+});
+
 /* ---------- Reset ---------- */
 document.getElementById("reset-progress")?.addEventListener("click", () => {
   if (!confirm("Alle afgevinkte voortgang op dit apparaat wissen?")) return;
@@ -591,9 +821,8 @@ function renderAll() {
   renderISDE();
   renderOnderzoek();
   renderBudget();
-  renderPlanning();
-  renderBesluiten();
-  renderActielijst();
+  renderUitvoeringsplanning();
+  renderActieplanning();
   renderRisicos();
   renderOplevering();
   renderTools();

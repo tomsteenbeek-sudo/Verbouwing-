@@ -97,6 +97,37 @@ h1, h2, h3, h4 { font-family: var(--font-display); font-weight: 600; line-height
 }
 .nav-links a:hover { background: var(--accent-soft); color: var(--accent-strong); }
 
+.nav-toggle {
+  display: none;
+  margin-left: auto;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  width: 34px; height: 34px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.nav-toggle span { display: block; width: 16px; height: 2px; margin: 0 auto; background: var(--text); border-radius: 2px; }
+
+@media (max-width: 760px) {
+  .site-nav .wrap { flex-wrap: wrap; height: auto; padding-top: 10px; padding-bottom: 10px; }
+  .nav-toggle { display: flex; }
+  .nav-links {
+    display: none;
+    flex-direction: column;
+    width: 100%;
+    gap: 2px;
+    margin-top: 10px;
+    max-height: 60vh;
+    overflow-y: auto;
+  }
+  .nav-links a { padding: 10px 12px; border-radius: var(--radius-sm); }
+  .site-nav.nav-open .nav-links { display: flex; }
+}
+
 /* ---------- Hero ---------- */
 .hero {
   position: relative;
@@ -274,7 +305,7 @@ h1, h2, h3, h4 { font-family: var(--font-display); font-weight: 600; line-height
 
 .action-list { list-style: none; margin: 0; padding: 0; }
 .action-list li {
-  display: flex; align-items: flex-start; gap: 10px;
+  display: flex; align-items: center; flex-wrap: wrap; gap: 10px;
   padding: 9px 0; border-bottom: 1px solid var(--border);
   font-size: 0.9rem;
 }
@@ -424,5 +455,48 @@ footer { padding: 30px 0 60px; text-align: center; color: var(--text-muted); fon
   font-size: 0.76rem; padding: 6px 12px; border-radius: 999px; cursor: pointer;
 }
 .reset-btn:hover { border-color: var(--accent); color: var(--accent-strong); }
+
+/* ---------- Klusdagen (uitvoeringsplanning) ---------- */
+.klusdag-list { display: grid; gap: 18px; margin-top: 18px; }
+.klusdag-card { padding: 20px 22px; }
+.klusdag-head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 14px; }
+.klusdag-nr { font-family: var(--font-ui); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--accent); margin-bottom: 3px; }
+.klusdag-head h3 { font-size: 1.12rem; margin-bottom: 3px; }
+.klusdag-meta { font-size: 0.82rem; color: var(--text-muted); }
+.klusdag-status { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; flex-shrink: 0; }
+.klusdag-field { margin-top: 14px; font-size: 0.88rem; }
+.klusdag-field strong { display: block; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); font-family: var(--font-ui); margin-bottom: 6px; font-weight: 700; }
+.klusdag-field.opmerkingen { color: var(--text-muted); font-style: italic; }
+.klusdag-field.opmerkingen strong { display: inline; text-transform: none; letter-spacing: normal; font-style: normal; margin-bottom: 0; margin-right: 4px; }
+
+.material-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.material-list li { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 0.88rem; padding: 4px 0; border-bottom: 1px dashed var(--border); }
+.material-list li:last-child { border-bottom: none; }
+.qty-input { width: 110px; text-align: right; }
+
+.badge.extern { background: var(--warn-soft); color: var(--warn); margin-left: 6px; text-transform: uppercase; letter-spacing: 0.04em; }
+.badge.blokkeert { background: var(--danger-soft); color: var(--danger); margin-left: 8px; text-transform: none; }
+
+.pill.bezig { background: var(--warn-soft); color: var(--warn); }
+
+/* ---------- Actieplanning ---------- */
+.actie-group { margin-top: 26px; }
+.actie-group:first-child { margin-top: 0; }
+.actie-group h3 { font-size: 0.95rem; margin-bottom: 10px; color: var(--accent-strong); }
+.actie-list { border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); overflow: hidden; }
+.actie-row { display: flex; align-items: flex-start; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--border); }
+.actie-list li.actie-row:last-child { border-bottom: none; }
+.actie-row input[type=checkbox] { margin-top: 3px; width: 17px; height: 17px; accent-color: var(--accent); flex-shrink: 0; cursor: pointer; }
+.actie-row.done .actie-title { color: var(--text-muted); text-decoration: line-through; }
+.actie-body { flex: 1; min-width: 0; }
+.actie-title { font-size: 0.92rem; font-weight: 600; margin-bottom: 4px; }
+.actie-meta { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 0.82rem; color: var(--text-muted); align-items: center; }
+.actie-meta .actie-wie { width: 140px; }
+.actie-note { margin-top: 6px; font-size: 0.82rem; color: var(--text-muted); font-style: italic; }
+
+@media (max-width: 560px) {
+  .klusdag-head { flex-direction: column; }
+  .klusdag-status { align-items: flex-start; flex-direction: row; justify-content: space-between; width: 100%; }
+}
 
 footer { font-family: var(--font-ui); }
