@@ -153,3 +153,19 @@ export function statusPillClass(status) {
   if (status === "Bezig" || status === "Te doen" || status === "Bestellen") return "bezig";
   return "open";
 }
+
+// Kleine badges voor meerdere gekoppelde personen (werkzaamheid/actie-kaarten).
+export function peopleBadgesHtml(people) {
+  if (!people || !people.length) return '<span class="people-badges empty">Niet toegewezen</span>';
+  return `<span class="people-badges">${people.map((p) => `<span class="person-badge">${escapeHtml(p.name)}</span>`).join("")}</span>`;
+}
+
+// Aanvinklijst voor multi-select-formuliervelden ("Toegewezen aan").
+export function checkboxListHtml(items, selectedIds, name) {
+  const selected = new Set((selectedIds || []).map(String));
+  return `<div class="checkbox-list">${items.map((i) => `
+    <label class="checkbox-list-item">
+      <input type="checkbox" name="${name}" value="${i.id}" ${selected.has(String(i.id)) ? "checked" : ""}>
+      <span>${escapeHtml(i.name)}</span>
+    </label>`).join("")}</div>`;
+}

@@ -31,11 +31,11 @@ function renderNextWorkday(next) {
     el.innerHTML = `<p class="empty-state">Alle klusdagen zijn gereed 🎉</p>`;
     return;
   }
-  const people = new Set(next.tasks.map((t) => t.people?.name).filter(Boolean));
+  const people = new Set(next.tasks.flatMap((t) => t.people).map((p) => p.name));
   el.innerHTML = `
     <div class="eyebrow">Klusdag ${next.number}</div>
-    <h2 style="margin-bottom:4px;">${escapeHtml(next.name)}</h2>
-    <p style="color:var(--text-muted);margin:0 0 14px;">${formatDate(next.date)}</p>
+    <h2 style="margin-bottom:4px;">${formatDate(next.date)}</h2>
+    ${next.presentPeople.length ? `<p style="color:var(--text-muted);margin:0 0 14px;">Aanwezig: ${next.presentPeople.map((p) => escapeHtml(p.name)).join(" · ")}</p>` : ""}
     <div class="stat-row" style="margin-bottom:16px;">
       <div class="stat-card"><div class="n">${next.total}</div><div class="l">Werkzaamheden</div></div>
       <div class="stat-card"><div class="n">${people.size}</div><div class="l">Personen</div></div>
@@ -65,7 +65,7 @@ function renderStats(decorated, tasks, actions, materials) {
 function renderUpcoming(decorated) {
   const list = decorated
     .filter((w) => w.status !== "Gereed")
-    .flatMap((w) => w.tasks.filter((t) => t.status !== "Gereed").map((t) => ({ ...t, workdayNumber: w.number, workdayName: w.name })))
+    .flatMap((w) => w.tasks.filter((t) => t.status !== "Gereed").map((t) => ({ ...t, workdayNumber: w.number })))
     .slice(0, 8);
   const el = document.getElementById("upcoming-tasks");
   if (!list.length) {
@@ -76,7 +76,7 @@ function renderUpcoming(decorated) {
     <li>
       <label style="flex:1;">
         <strong>${escapeHtml(t.title)}</strong><br>
-        <span style="color:var(--text-muted);font-size:0.82rem;">Klusdag ${t.workdayNumber} · ${escapeHtml(t.rooms?.name || "Algemeen")}${t.people ? " · " + escapeHtml(t.people.name) : ""}</span>
+        <span style="color:var(--text-muted);font-size:0.82rem;">Klusdag ${t.workdayNumber} · ${escapeHtml(t.rooms?.name || "Algemeen")}${t.people.length ? " · " + t.people.map((p) => escapeHtml(p.name)).join(", ") : ""}</span>
       </label>
     </li>`).join("")}</ul>`;
 }
@@ -86,7 +86,7 @@ function renderWarnings(decorated, next, actions, taskMaterials) {
 
   decorated.filter((w) => w.status !== "Gereed").forEach((w) => {
     const warn = prerequisiteWarning(w, new Map(decorated.map((d) => [d.number, d])));
-    if (warn) warnings.push(`Klusdag ${w.number} (${w.name}): ${warn}`);
+    if (warn) warnings.push(`Klusdag ${w.number}: ${warn}`);
   });
 
   const soonWorkdays = decorated.filter((w) => w.status !== "Gereed").slice(0, 2);

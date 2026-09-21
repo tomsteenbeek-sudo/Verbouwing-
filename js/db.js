@@ -27,6 +27,43 @@ async function deleteRow(table, id) {
   const { error } = await supabase.from(table).delete().eq("id", id);
   if (error) throw error;
 }
+async function bulkUpdateRows(table, ids, patch) {
+  const supabase = await getSupabase();
+  const { error } = await supabase.from(table).update(patch).in("id", ids);
+  if (error) throw error;
+}
+async function bulkDeleteRows(table, ids) {
+  const supabase = await getSupabase();
+  const { error } = await supabase.from(table).delete().in("id", ids);
+  if (error) throw error;
+}
+
+// Vervangt alle koppelrijen voor één eigenaar (bv. alle personen van één taak)
+// door de opgegeven lijst — gebruikt in het bewerkformulier (multi-select).
+async function setLinks(joinTable, ownerCol, ownerId, otherCol, otherIds) {
+  const supabase = await getSupabase();
+  const { error: delErr } = await supabase.from(joinTable).delete().eq(ownerCol, ownerId);
+  if (delErr) throw delErr;
+  if (otherIds.length) {
+    const rows = otherIds.map((id) => ({ [ownerCol]: ownerId, [otherCol]: id }));
+    const { error } = await supabase.from(joinTable).insert(rows);
+    if (error) throw error;
+  }
+}
+
+// Voegt één koppeling toe aan meerdere eigenaren tegelijk (bulkbewerking) zonder
+// bestaande koppelingen van die eigenaren aan te raken — dus Marcel blijft
+// gekoppeld als je Tom via bulkbewerking toevoegt.
+async function addLinkToMany(joinTable, ownerCol, ownerIds, otherCol, otherId) {
+  const supabase = await getSupabase();
+  const rows = ownerIds.map((id) => ({ [ownerCol]: id, [otherCol]: otherId }));
+  const { error } = await supabase.from(joinTable).upsert(rows, { onConflict: `${ownerCol},${otherCol}`, ignoreDuplicates: true });
+  if (error) throw error;
+}
+
+function withPeople(rows, joinKey) {
+  return rows.map((row) => ({ ...row, people: (row[joinKey] || []).map((j) => j.people).filter(Boolean) }));
+}
 
 export const People = {
   list: () => listAll("people", { order: { column: "name" } }),
@@ -47,8 +84,18 @@ export const Rooms = {
   update: (id, patch) => updateRow("rooms", id, patch),
 };
 
+export const RoomImages = {
+  list: () => listAll("room_images", { order: { column: "sort_order" } }),
+  create: (row) => insertRow("room_images", row),
+  update: (id, patch) => updateRow("room_images", id, patch),
+  remove: (id) => deleteRow("room_images", id),
+};
+
 export const Workdays = {
-  list: () => listAll("workdays", { order: { column: "sort_order" } }),
+  list: async () => {
+    const rows = await listAll("workdays", { select: "*, workday_persons(people(id,name))", order: { column: "sort_order" } });
+    return withPeople(rows, "workday_persons");
+  },
   create: (row) => insertRow("workdays", row),
   update: (id, patch) => updateRow("workdays", id, patch),
   remove: async (id) => {
@@ -58,16 +105,24 @@ export const Workdays = {
     await deleteRow("workdays", id);
   },
   dependencies: () => listAll("workday_dependencies"),
+  setPresent: (workdayId, personIds) => setLinks("workday_persons", "workday_id", workdayId, "person_id", personIds),
 };
 
 export const Tasks = {
-  list: () => listAll("tasks", {
-    select: "*, rooms(id,name,slug), workdays(id,number,name), people(id,name)",
-    order: { column: "sort_order" },
-  }),
+  list: async () => {
+    const rows = await listAll("tasks", {
+      select: "*, rooms(id,name,slug), workdays(id,number), task_persons(people(id,name))",
+      order: { column: "sort_order" },
+    });
+    return withPeople(rows, "task_persons");
+  },
   create: (row) => insertRow("tasks", row),
   update: (id, patch) => updateRow("tasks", id, patch),
   remove: (id) => deleteRow("tasks", id),
+  bulkUpdate: (ids, patch) => bulkUpdateRows("tasks", ids, patch),
+  bulkRemove: (ids) => bulkDeleteRows("tasks", ids),
+  setPersons: (taskId, personIds) => setLinks("task_persons", "task_id", taskId, "person_id", personIds),
+  addPersonToMany: (taskIds, personId) => addLinkToMany("task_persons", "task_id", taskIds, "person_id", personId),
   materialsFor: async (taskId) => {
     const supabase = await getSupabase();
     const { data, error } = await supabase.from("task_materials").select("materials(*)").eq("task_id", taskId);
@@ -116,7 +171,7 @@ export const Materials = {
 };
 
 export const Tools = {
-  list: () => listAll("tools", { order: { column: "sort_order" } }),
+  list: () => listAll("tools", { select: "*, people(id,name)", order: { column: "sort_order" } }),
   create: (row) => insertRow("tools", row),
   update: (id, patch) => updateRow("tools", id, patch),
   remove: (id) => deleteRow("tools", id),
@@ -129,13 +184,20 @@ export const Tools = {
 };
 
 export const Actions = {
-  list: () => listAll("actions", {
-    select: "*, people(id,name), workdays(id,number)",
-    order: { column: "sort_order" },
-  }),
+  list: async () => {
+    const rows = await listAll("actions", {
+      select: "*, action_persons(people(id,name)), workdays(id,number)",
+      order: { column: "sort_order" },
+    });
+    return withPeople(rows, "action_persons");
+  },
   create: (row) => insertRow("actions", row),
   update: (id, patch) => updateRow("actions", id, patch),
   remove: (id) => deleteRow("actions", id),
+  bulkUpdate: (ids, patch) => bulkUpdateRows("actions", ids, patch),
+  bulkRemove: (ids) => bulkDeleteRows("actions", ids),
+  setPersons: (actionId, personIds) => setLinks("action_persons", "action_id", actionId, "person_id", personIds),
+  addPersonToMany: (actionIds, personId) => addLinkToMany("action_persons", "action_id", actionIds, "person_id", personId),
 };
 
 export const Risks = {
@@ -164,7 +226,7 @@ export const TaskMaterials = {
 export const TaskTools = {
   listAll: async () => {
     const supabase = await getSupabase();
-    const { data, error } = await supabase.from("task_tools").select("tool_id, tasks(title)");
+    const { data, error } = await supabase.from("task_tools").select("task_id, tool_id, tasks(title)");
     if (error) throw error;
     return data;
   },

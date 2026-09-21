@@ -1,63 +1,32 @@
-import { Rooms, Workdays, People, Tasks, Materials } from "../db.js";
+import { Rooms, RoomImages, Workdays, People, Tasks, Materials } from "../db.js";
 import { renderNav, escapeHtml, reportError, toast, openModal, closeModal, confirmDialog } from "../ui.js";
-import { taskCardHtml, wireTaskCards, openTaskForm } from "../task-shared.js";
+import { taskCardHtml, wireTaskCards, openTaskForm, TASK_STATUSES } from "../task-shared.js";
+import { renderBulkBar, wireSelectCheckboxes } from "../bulk.js";
+import { openLightbox } from "../lightbox.js";
 
 renderNav();
 document.getElementById("year").textContent = new Date().getFullYear();
 
 const FLOOR_LABELS = { "begane-grond": "Begane grond", "verdieping": "Verdieping", "buiten": "Buiten" };
-let ROOMS = [], WORKDAYS = [], PEOPLE = [], TASKS = [], MATERIALS = [];
+let ROOMS = [], IMAGES = [], WORKDAYS = [], PEOPLE = [], TASKS = [], MATERIALS = [];
 let currentFloor = "alle";
-
-function imgTag(slug, alt) {
-  return `<img src="images/rooms/${slug}.jpg" alt="${alt}" loading="lazy" onerror="this.remove();">`;
-}
-
-const MAX_ROOM_PHOTOS = 4;
-
-// Bouwt een strook met extra foto's (images/rooms/<slug>-2.jpg, -3.jpg, -4.jpg).
-// Onbestaande bestanden verdwijnen stilletjes; als er geen enkele extra foto is,
-// blijft de container leeg (geen "meer foto's"-kop).
-function wireExtraGallery(container, slug, alt) {
-  container.innerHTML = "";
-  for (let n = 2; n <= MAX_ROOM_PHOTOS; n++) {
-    const img = document.createElement("img");
-    img.loading = "lazy";
-    img.alt = alt;
-    img.src = `images/rooms/${slug}-${n}.jpg`;
-    img.addEventListener("error", () => img.remove());
-    container.appendChild(img);
-  }
-}
-
-const MAX_MOODBOARD_PHOTOS = 4;
-
-function preloadImage(src) {
-  return new Promise((resolve) => {
-    const img = new Image();
-    img.onload = () => resolve(src);
-    img.onerror = () => resolve(null);
-    img.src = src;
-  });
-}
-
-// Sfeerbeelden ("hoe het moet worden"): images/rooms/<slug>-moodboard-1.jpg t/m -4.jpg.
-// De hele sectie (incl. kop) blijft verborgen als er geen enkel bestand bestaat.
-async function wireMoodboard(wrapEl, galleryEl, slug, alt) {
-  const candidates = [];
-  for (let n = 1; n <= MAX_MOODBOARD_PHOTOS; n++) {
-    candidates.push(`images/rooms/${slug}-moodboard-${n}.jpg`);
-  }
-  const found = (await Promise.all(candidates.map(preloadImage))).filter(Boolean);
-  if (!found.length) { wrapEl.style.display = "none"; return; }
-  galleryEl.innerHTML = found.map((src) => `<img src="${src}" alt="Sfeerbeeld ${alt}" loading="lazy">`).join("");
-  wrapEl.style.display = "";
-}
+const selectedTaskIds = new Set();
 
 async function loadAll() {
-  [ROOMS, WORKDAYS, PEOPLE, TASKS, MATERIALS] = await Promise.all([
-    Rooms.list(), Workdays.list(), People.list(), Tasks.list(), Materials.list(),
+  [ROOMS, IMAGES, WORKDAYS, PEOPLE, TASKS, MATERIALS] = await Promise.all([
+    Rooms.list(), RoomImages.list(), Workdays.list(), People.list(), Tasks.list(), Materials.list(),
   ]);
+}
+
+function imagesFor(roomId, type) {
+  return IMAGES.filter((i) => i.room_id === roomId && i.type === type).sort((a, b) => a.sort_order - b.sort_order);
+}
+function coverImageFor(roomId) {
+  const all = IMAGES.filter((i) => i.room_id === roomId);
+  return all.find((i) => i.is_cover)
+    || imagesFor(roomId, "desired")[0]
+    || imagesFor(roomId, "current")[0]
+    || null;
 }
 
 async function render() {
@@ -93,11 +62,12 @@ function renderGrid() {
     const tasks = TASKS.filter((t) => t.room_id === r.id);
     const done = tasks.filter((t) => t.status === "Gereed").length;
     const pct = tasks.length ? Math.round((done / tasks.length) * 100) : 0;
+    const cover = coverImageFor(r.id);
     return `
       <article class="room-card card" data-slug="${r.slug}">
         <div class="room-thumb">
           <div class="ph-fallback"><div class="ph-icon">🏠</div>afbeelding volgt</div>
-          ${imgTag(r.slug, r.name)}
+          ${cover ? `<img src="${escapeHtml(cover.image_url)}" alt="${escapeHtml(r.name)}" loading="lazy" onerror="this.remove();">` : ""}
         </div>
         <div class="room-body">
           <div class="room-floor">${FLOOR_LABELS[r.floor]}</div>
@@ -115,35 +85,47 @@ function renderGrid() {
   });
 }
 
+function imageGalleryHtml(images, sectionClass) {
+  if (!images.length) return "";
+  return `<div class="room-image-gallery ${sectionClass}">${images.map((img, i) => `
+    <div class="room-image-tile" data-image-id="${img.id}" data-index="${i}">
+      <img src="${escapeHtml(img.image_url)}" alt="${escapeHtml(img.caption || "")}" loading="lazy">
+      <div class="room-image-tile-actions">
+        <button type="button" class="btn-icon image-cover-btn" title="Als hoofdfoto instellen">${img.is_cover ? "★" : "☆"}</button>
+        <button type="button" class="btn-icon image-delete-btn" title="Verwijderen">✕</button>
+      </div>
+    </div>`).join("")}</div>`;
+}
+
 function renderDetail(slug) {
   const room = ROOMS.find((r) => r.slug === slug);
   if (!room) { document.getElementById("kamers-root").innerHTML = `<p class="empty-state">Kamer niet gevonden.</p>`; return; }
   const tasks = TASKS.filter((t) => t.room_id === room.id);
   const materials = MATERIALS.filter((m) => m.room_id === room.id);
+  const desired = imagesFor(room.id, "desired");
+  const current = imagesFor(room.id, "current");
+
   document.getElementById("kamers-root").innerHTML = `
     <a href="kamers.html" class="btn-secondary" style="display:inline-block;margin-bottom:18px;">← Terug naar kamers</a>
-    <div class="overlay-img" style="border-radius:var(--radius);margin-bottom:10px;">
-      <div class="ph-fallback"><div class="ph-icon">🏠</div>Nog geen ontwerpafbeelding<br>plaats images/rooms/${room.slug}.jpg</div>
-      ${imgTag(room.slug, room.name)}
-    </div>
-    <div class="room-extra-gallery" id="room-extra-gallery" style="margin-bottom:20px;"></div>
     <div class="room-floor">${FLOOR_LABELS[room.floor]}${room.is_out_of_scope ? ' · <span class="badge klaar">Buiten scope</span>' : ""}</div>
     <h2 style="margin-bottom:14px;">${escapeHtml(room.name)}</h2>
-    <div class="compare">
-      <div class="compare-col nu"><div class="lbl">Nu</div><p>${escapeHtml(room.current_state || "")}</p></div>
-      <div class="compare-col wordt"><div class="lbl">Wordt</div><p>${escapeHtml(room.target_state || "")}</p></div>
-    </div>
 
-    <div id="room-moodboard" style="display:none;">
-      <h3 style="font-size:1rem;margin:24px 0 10px;">Hoe het moet worden</h3>
-      <div class="room-extra-gallery" id="room-moodboard-gallery"></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin:0 0 10px;">
+      <h3 style="margin:0;font-size:1rem;">Gewenste situatie</h3>
+      <button class="btn-icon" id="add-image-btn">+ Afbeelding</button>
     </div>
+    ${desired.length ? imageGalleryHtml(desired, "desired") : '<p class="empty-state">Nog geen ontwerp-/inspiratiefoto voor deze kamer.</p>'}
+    <p>${escapeHtml(room.target_state || "")}</p>
+
+    <h3 style="font-size:1rem;margin:24px 0 10px;">Huidige situatie</h3>
+    ${current.length ? imageGalleryHtml(current, "current") : '<p class="empty-state">Nog geen foto van de huidige staat.</p>'}
+    <p>${escapeHtml(room.current_state || "")}</p>
 
     <div style="display:flex;justify-content:space-between;align-items:center;margin:24px 0 10px;">
       <h3 style="margin:0;font-size:1rem;">Werkzaamheden</h3>
       <button class="btn-primary" id="add-task-btn">+ Werkzaamheid</button>
     </div>
-    <div id="task-list">${tasks.length ? tasks.map((t) => taskCardHtml(t, { showRoom: false })).join("") : '<p class="empty-state">Nog geen werkzaamheden voor deze kamer.</p>'}</div>
+    <div id="task-list">${tasks.length ? tasks.map((t) => taskCardHtml(t, { showRoom: false, selectable: true })).join("") : '<p class="empty-state">Nog geen werkzaamheden voor deze kamer.</p>'}</div>
 
     ${materials.length ? `
     <h3 style="font-size:1rem;margin:24px 0 10px;">Materialen voor deze kamer</h3>
@@ -151,13 +133,110 @@ function renderDetail(slug) {
     <p style="font-size:0.82rem;"><a href="materialen.html">Beheer materialen →</a></p>` : ""}
   `;
 
-  wireExtraGallery(document.getElementById("room-extra-gallery"), room.slug, room.name);
-  wireMoodboard(document.getElementById("room-moodboard"), document.getElementById("room-moodboard-gallery"), room.slug, room.name);
+  wireImageGallery(desired, room);
+  wireImageGallery(current, room);
+  document.getElementById("add-image-btn").addEventListener("click", () => openImageForm(room));
 
+  const root = document.getElementById("kamers-root");
   const ctx = { rooms: ROOMS, workdays: WORKDAYS, people: PEOPLE, onChange: render };
   wireTaskCards(document.getElementById("task-list"), tasks, ctx);
+  wireSelectCheckboxes(root, ".task-select-cb", () => renderBulk(), selectedTaskIds);
+  renderBulk();
   document.getElementById("add-task-btn").addEventListener("click", () => {
     openTaskForm({ task: null, ...ctx, defaults: { room_id: room.id } }, render);
+  });
+}
+
+function wireImageGallery(images, room) {
+  images.forEach((img, i) => {
+    const tile = document.querySelector(`.room-image-tile[data-image-id="${img.id}"]`);
+    if (!tile) return;
+    tile.querySelector("img").addEventListener("click", () => {
+      openLightbox(images.map((im) => ({ url: im.image_url, caption: im.caption })), i);
+    });
+    tile.querySelector(".image-cover-btn").addEventListener("click", async (e) => {
+      e.stopPropagation();
+      try {
+        await Promise.all(IMAGES.filter((im) => im.room_id === room.id && im.is_cover).map((im) => RoomImages.update(im.id, { is_cover: false })));
+        await RoomImages.update(img.id, { is_cover: true });
+        toast("Hoofdfoto ingesteld.");
+        render();
+      } catch (err) { reportError(err, "instellen hoofdfoto"); }
+    });
+    tile.querySelector(".image-delete-btn").addEventListener("click", async (e) => {
+      e.stopPropagation();
+      const ok = await confirmDialog("Deze afbeelding verwijderen?");
+      if (!ok) return;
+      try { await RoomImages.remove(img.id); toast("Afbeelding verwijderd."); render(); }
+      catch (err) { reportError(err, "verwijderen afbeelding"); }
+    });
+  });
+}
+
+function openImageForm(room) {
+  const overlay = openModal("Afbeelding toevoegen", `
+    <form id="image-form">
+      <div class="form-field full"><label>Afbeelding-URL of bestandspad</label><input type="text" name="image_url" required placeholder="images/rooms/${room.slug}-3.jpg"></div>
+      <div class="form-field full"><label>Type</label>
+        <select name="type">
+          <option value="desired">Gewenste situatie</option>
+          <option value="current">Huidige situatie</option>
+        </select>
+      </div>
+      <div class="form-field full"><label>Bijschrift (optioneel)</label><input type="text" name="caption"></div>
+      <div class="modal-actions">
+        <button type="button" class="btn-secondary" id="image-cancel-btn">Annuleren</button>
+        <button type="submit" class="btn-primary">Toevoegen</button>
+      </div>
+    </form>`);
+  overlay.querySelector("#image-cancel-btn").addEventListener("click", closeModal);
+  overlay.querySelector("#image-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const fd = new FormData(e.target);
+    const type = fd.get("type");
+    const existingCount = imagesFor(room.id, type).length;
+    try {
+      await RoomImages.create({
+        room_id: room.id,
+        image_url: fd.get("image_url").trim(),
+        type,
+        caption: fd.get("caption") || null,
+        sort_order: existingCount + 1,
+        is_cover: false,
+      });
+      toast("Afbeelding toegevoegd.");
+      closeModal();
+      render();
+    } catch (err) { reportError(err, "toevoegen afbeelding"); }
+  });
+}
+
+function renderBulk() {
+  const bar = document.getElementById("bulk-bar");
+  renderBulkBar(bar, {
+    selectedIds: Array.from(selectedTaskIds),
+    people: PEOPLE,
+    workdays: WORKDAYS,
+    statuses: TASK_STATUSES,
+    onAssignPerson: async (personId) => {
+      try { await Tasks.addPersonToMany(Array.from(selectedTaskIds), personId); toast("Toegewezen."); selectedTaskIds.clear(); render(); }
+      catch (err) { reportError(err, "toewijzen"); }
+    },
+    onMoveWorkday: async (workdayId) => {
+      try { await Tasks.bulkUpdate(Array.from(selectedTaskIds), { workday_id: workdayId }); toast("Verplaatst."); selectedTaskIds.clear(); render(); }
+      catch (err) { reportError(err, "verplaatsen"); }
+    },
+    onSetStatus: async (status) => {
+      try { await Tasks.bulkUpdate(Array.from(selectedTaskIds), { status }); toast("Status bijgewerkt."); selectedTaskIds.clear(); render(); }
+      catch (err) { reportError(err, "status wijzigen"); }
+    },
+    onDelete: async () => {
+      const ok = await confirmDialog(`${selectedTaskIds.size} werkzaamheden verwijderen? Dit kan niet ongedaan worden gemaakt.`);
+      if (!ok) return;
+      try { await Tasks.bulkRemove(Array.from(selectedTaskIds)); toast("Verwijderd."); selectedTaskIds.clear(); render(); }
+      catch (err) { reportError(err, "verwijderen"); }
+    },
+    onCancel: () => { selectedTaskIds.clear(); render(); },
   });
 }
 
