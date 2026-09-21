@@ -31,6 +31,8 @@ async function deleteRow(table, id) {
 export const People = {
   list: () => listAll("people", { order: { column: "name" } }),
   create: (name) => insertRow("people", { name }),
+  update: (id, patch) => updateRow("people", id, patch),
+  remove: (id) => deleteRow("people", id),
 };
 
 export const Rooms = {
