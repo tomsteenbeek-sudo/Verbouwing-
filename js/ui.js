@@ -13,6 +13,7 @@ const NAV_ITEMS = [
   { href: "plattegronden.html", label: "Plattegronden" },
   { href: "risicos.html", label: "Risico's" },
   { href: "oplevering.html", label: "Oplevering" },
+  { href: "personen.html", label: "Personen" },
 ];
 
 export function renderNav() {
