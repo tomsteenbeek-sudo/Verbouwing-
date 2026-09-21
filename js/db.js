@@ -61,8 +61,8 @@ async function addLinkToMany(joinTable, ownerCol, ownerIds, otherCol, otherId) {
   if (error) throw error;
 }
 
-function withPeople(rows, joinKey) {
-  return rows.map((row) => ({ ...row, people: (row[joinKey] || []).map((j) => j.people).filter(Boolean) }));
+function withPeople(rows, joinKey, outKey = "people") {
+  return rows.map((row) => ({ ...row, [outKey]: (row[joinKey] || []).map((j) => j.people).filter(Boolean) }));
 }
 
 export const People = {
@@ -94,7 +94,7 @@ export const RoomImages = {
 export const Workdays = {
   list: async () => {
     const rows = await listAll("workdays", { select: "*, workday_persons(people(id,name))", order: { column: "sort_order" } });
-    return withPeople(rows, "workday_persons");
+    return withPeople(rows, "workday_persons", "presentPeople");
   },
   create: (row) => insertRow("workdays", row),
   update: (id, patch) => updateRow("workdays", id, patch),
