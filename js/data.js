@@ -381,72 +381,404 @@ const UITVOERING = {
     "Vloer, plinten en trap",
     "Interieur en oplevering"
   ],
-  planning: [
-    { periode: "Vóór sleutel", werk: "Offertes, inspecties inplannen, kleuren en vloer kiezen, container regelen", afhankelijk: "Toegang tot de woning" },
-    { periode: "Week 1", werk: "Leegmaken, inspecties uitvoeren, asbestcheck, kleine sloop", afhankelijk: "—" },
-    { periode: "Week 1–2", werk: "Casco-herstel, vlieringtrap, dakherstel, gevelherstel", afhankelijk: "Uitkomst inspectie" },
-    { periode: "Week 2", werk: "Elektra, groepenkast, leidingwerk, voorbereiding airco", afhankelijk: "Casco open" },
-    { periode: "Week 2–3", werk: "Isolatie vloer en dak", afhankelijk: "Kruipruimte droog, dak dicht" },
-    { periode: "Week 3–4", werk: "Wand- en plafondherstel, schilderwerk binnen", afhankelijk: "Elektra dicht" },
-    { periode: "Week 4", werk: "Schilderwerk buiten, mits droog weer", afhankelijk: "Weer" },
-    { periode: "Week 4–5", werk: "Vloer leggen, plinten, trap", afhankelijk: "Schilderwerk droog" },
-    { periode: "Week 5–6", werk: "TV-wand, verlichting, gordijnen, meubels, restpunten", afhankelijk: "Vloer beschermd" },
-    { periode: "Later", werk: "Dakterras en tuin", afhankelijk: "Rest van de bouwrommel weg" }
-  ],
-  toelichting: "Vijf tot zes weken is realistischer dan de vier uit het oude plan, en dan nog alleen als de inspecties niets groots opleveren. Tuin en dakterras schuiven bewust naar achteren: daar loopt al het bouwverkeer overheen."
+  toelichting: "Reken op vijf tot zes weken klusdagen, en dan nog alleen als de inspecties niets groots opleveren. Tuin en dakterras schuiven bewust naar achteren: daar loopt al het bouwverkeer overheen."
 };
 
-const BESLUITEN = [
-  { besluit: "Vliering: alleen opslag of ooit bewoonbaar", toelichting: "Bepaalt of het vliering- of dakisolatie wordt — nog niet definitief", status: "Vóór isolatie-offerte" },
-  { besluit: "Gevelisolatie doen of niet, na het spouwonderzoek", toelichting: "Bepaalt of binnenwerk opnieuw op de schop moet", status: "Vóór schilderwerk" },
-  { besluit: "Schilderwerk zelf doen of uitbesteden", toelichting: "Besloten: zelf doen, binnen en buiten", status: "Gedaan" },
-  { besluit: "Airco nu voorbereiden of niet", toelichting: "Leidingen en doorvoeren moeten vóór de afwerking", status: "Vóór elektra" },
-  { besluit: "Keukenvloer: behouden, vervangen of laten aansluiten", toelichting: "Bepaalt de vloerbestelling", status: "Vóór vloerbestelling" },
-  { besluit: "Vloer: materiaal, kleur, legpatroon", toelichting: "Visgraat vraagt 15 tot 20 procent meer materiaal en meer legkosten", status: "Vóór bestelling" },
-  { besluit: "Functie tweede slaapkamer", toelichting: "Bepaalt stopcontacten en netwerk", status: "Vóór elektra" },
-  { besluit: "Wijnkoelkast: wel of niet, en waar", toelichting: "Groep en ventilatieruimte", status: "Vóór elektra" },
-  { besluit: "Schuifdeur keuken verwijderen", toelichting: "Herstelwerk en omlijsting", status: "Vóór sloop" },
-  { besluit: "Deur naar de gang: houden, vervangen, met glas", toelichting: "Bestellevertijd", status: "Vóór schilderwerk" },
-  { besluit: "Trapafwerking: schilderen, bekleden of beide", toelichting: "Volgorde en budget", status: "Vóór fase 5" },
-  { besluit: "Definitieve verfkleuren per ruimte", toelichting: "Inkoop", status: "Vóór fase 4" },
-  { besluit: "Smart home: alleen verlichting of breder", toelichting: "Bekabeling en schakelmateriaal", status: "Vóór elektra" },
-  { besluit: "Ontwerp en maatvoering zwevend TV-meubel", toelichting: "Levertijd bij maatwerk, vaak 6 tot 10 weken", status: "Zo vroeg mogelijk" },
-  { besluit: "Gordijnen en raamdecoratie", toelichting: "Levertijd", status: "Fase 6" },
-  { besluit: "Dakterras en tuin: nu of volgend seizoen", toelichting: "Budget en planning", status: "Kan later" }
+/* Klusdagen: de praktische dagplanning. "vereist" is een vrije tekst, "vereistDagen"
+   verwijst naar id's van klusdagen die eerst afgerond moeten zijn. Datum per klusdag
+   wordt zelf ingevuld en lokaal onthouden (zie app.js). Status wordt automatisch
+   afgeleid uit de aangevinkte taken: 0% = Gepland, gedeeltelijk/datum bereikt = Bezig,
+   100% = Gereed. */
+const KLUSDAGEN = [
+  {
+    id: 1, naam: "Woning voorbereiden / sloop", fase: "Sloop en casco-herstel",
+    uitvoerder: "Zelf", extern: false, ruimtes: ["Hele woning"],
+    vereist: "Sleutel/toegang tot de woning", vereistDagen: [],
+    materiaal: [
+      { naam: "Afvalzakken en vuilniszakken", aantal: "" },
+      { naam: "Beschermfolie of karton voor vloeren die blijven", aantal: "" },
+      { naam: "Stofzeilen voor deuropeningen", aantal: "" }
+    ],
+    droogtijd: null,
+    taken: [
+      "Woning leegmaken",
+      "Vloeren en onderdelen die blijven beschermen",
+      "Afvalplek/container voorbereiden",
+      "Schuifdeur keuken verwijderen indien besloten",
+      "Losse onderdelen/verouderd schakelmateriaal verwijderen waar nodig",
+      "Exacte situatie wanden, plafonds, plinten en deuren beoordelen",
+      "Werkzaamheden voor elektricien markeren",
+      "Foto's maken vóór start werkzaamheden"
+    ],
+    opmerkingen: "Maak overal foto's vóór je begint — handig bij discussies met vakmensen en voor het subsidiedossier."
+  },
+  {
+    id: 2, naam: "Elektra voorbereiden", fase: "Elektra en leidingwerk",
+    uitvoerder: "Zelf", extern: false, ruimtes: ["Hele woning"],
+    vereist: "Klusdag 1 afgerond", vereistDagen: [1],
+    materiaal: [{ naam: "Potloden/markeertape voor posities", aantal: "" }],
+    droogtijd: null,
+    taken: [
+      "Locaties stopcontacten en schakelaars bepalen",
+      "TV-wand elektra en kabeldoorvoer voorbereiden",
+      "Verlichting en eventuele extra plafondpunten voorbereiden",
+      "Smart-home wensen meenemen",
+      "Eventuele voorbereiding wijnkoelkast",
+      "Eventuele voorbereiding airco",
+      "Netwerk/UTP waar nodig",
+      "Sleuven en gaten maken"
+    ],
+    opmerkingen: "Leg posities eerst met tape vast en loop er met de elektricien doorheen vóór er iets definitief is."
+  },
+  {
+    id: 3, naam: "Elektricien", fase: "Elektra en leidingwerk",
+    uitvoerder: "Elektricien", extern: true, ruimtes: ["Hele woning"],
+    vereist: "Klusdag 2 afgerond, elektra-inventarisatie en offerte rond, elektraplan definitief", vereistDagen: [2],
+    materiaal: [], droogtijd: null,
+    taken: [
+      "Groepenkast beoordelen en zo nodig uitbreiden of vervangen",
+      "Bedrading vervangen waar verouderd",
+      "Stopcontacten en schakelaars aansluiten",
+      "Buitenstopcontact en -verlichting dakterras aansluiten",
+      "Bekabeling airco en wijnkoelkast aansluiten",
+      "Netwerk/UTP aansluiten"
+    ],
+    opmerkingen: "Externe partij — ruim vooraf inplannen bij de elektricien."
+  },
+  {
+    id: 4, naam: "Timmer- en herstelwerk", fase: "Sloop en casco-herstel",
+    uitvoerder: "Zelf of timmerman", extern: false, ruimtes: ["Entree en gang", "Woonkamer", "Keuken", "Overloop"],
+    vereist: "Klusdag 3 afgerond (elektra dicht in de wanden)", vereistDagen: [3],
+    materiaal: [
+      { naam: "Multiplex/reparatiehout", aantal: "" },
+      { naam: "Houtlijm en schroeven", aantal: "" }
+    ],
+    droogtijd: null,
+    taken: [
+      "Lokaal herstel wanden en plafonds",
+      "Schuifdeur-opening keuken herstellen en omlijsting afwerken",
+      "Deurkozijnen rechtzetten waar nodig",
+      "Trapkast onder de trap opnieuw indelen of dichtzetten"
+    ],
+    opmerkingen: ""
+  },
+  {
+    id: 5, naam: "Vlieringtrap maken of herstellen", fase: "Sloop en casco-herstel",
+    uitvoerder: "Zelf of timmerman", extern: false, ruimtes: ["Bergvliering"],
+    vereist: "Besluit vliering (opslag/bewoonbaar) genomen, asbestcheck gedaan", vereistDagen: [],
+    materiaal: [{ naam: "Vlieringtrap (kant-en-klaar of materiaal)", aantal: "" }],
+    droogtijd: null,
+    taken: [
+      "Asbestcheck vóór er iets wordt gesloopt of geïsoleerd",
+      "Vlieringtrap maken of vervangen, veilig en stevig",
+      "Vloer beoordelen op draagkracht",
+      "Dakbeschot en pannen van binnenuit bekijken op vocht en lichtinval"
+    ],
+    opmerkingen: ""
+  },
+  {
+    id: 6, naam: "Isolatiewerk", fase: "Isolatie vloer en dak",
+    uitvoerder: "Isolatiepartij", extern: true, ruimtes: ["Kruipruimte", "Bergvliering"],
+    vereist: "Kruipruimte- en spouwonderzoek afgerond, isolatie-offertes rond, klusdag 1 afgerond", vereistDagen: [1],
+    materiaal: [],
+    droogtijd: "Kit/schuim bij kierdichting: laat volgens fabrieksvoorschrift uitharden vóór je verder afwerkt.",
+    taken: [
+      "Bodem- of vloerisolatie kruipruimte aanbrengen",
+      "Vliering- of dakisolatie aanbrengen (afhankelijk van besluit opslag/bewoonbaar)",
+      "Ventilatie op orde brengen",
+      "Kierdichting uitvoeren",
+      "Foto's maken tijdens uitvoering voor het ISDE-dossier"
+    ],
+    opmerkingen: "Externe partij — noteer m², Rd-waarde en maatregelnaam op de factuur voor de subsidie."
+  },
+  {
+    id: 7, naam: "Wand- en plafondherstel", fase: "Herstel en schilderwerk",
+    uitvoerder: "Zelf", extern: false, ruimtes: ["Hele woning (binnen)"],
+    vereist: "Klusdag 3 en 6 afgerond (elektra en isolatie dicht)", vereistDagen: [3, 6],
+    materiaal: [
+      { naam: "Stucwerk/reparatiemortel", aantal: "" },
+      { naam: "Wapeningstape voor naden", aantal: "" }
+    ],
+    droogtijd: "Stucwerk: minimaal 24 uur droogtijd voor je gaat schuren.",
+    taken: [
+      "Gaten en sleuven dichtzetten",
+      "Stucwerk nalopen op scheuren (vooral ouderslaapkamer)",
+      "Naden en aansluitingen herstellen",
+      "Beschadigingen aan de trap herstellen vóór afwerking"
+    ],
+    opmerkingen: ""
+  },
+  {
+    id: 8, naam: "Schuren, vullen en kitten", fase: "Herstel en schilderwerk",
+    uitvoerder: "Zelf", extern: false, ruimtes: ["Hele woning (binnen)"],
+    vereist: "Klusdag 7 afgerond en volledig droog", vereistDagen: [7],
+    materiaal: [
+      { naam: "Schuurpapier (diverse korrels)", aantal: "" },
+      { naam: "Vulmiddel/plamuur", aantal: "" },
+      { naam: "Kit (acryl, overschilderbaar)", aantal: "" }
+    ],
+    droogtijd: "Laat plamuur en kit minimaal 24 uur drogen voordat je verder schuurt of schildert.",
+    taken: [
+      "Wanden en plafonds schuren",
+      "Naden en gaatjes vullen",
+      "Kitnaden aanbrengen waar nodig",
+      "Stofvrij maken vóór schilderwerk"
+    ],
+    opmerkingen: ""
+  },
+  {
+    id: 9, naam: "Schilderwerk plafonds", fase: "Herstel en schilderwerk",
+    uitvoerder: "Zelf", extern: false, ruimtes: ["Hele woning (binnen)"],
+    vereist: "Klusdag 8 afgerond, stofvrij", vereistDagen: [8],
+    materiaal: [
+      { naam: "Plafondverf (mat wit)", aantal: "" },
+      { naam: "Rollers en verlengstok", aantal: "" }
+    ],
+    droogtijd: "Minimaal 4 tot 24 uur tussen de lagen, afhankelijk van de verf — check het blik.",
+    taken: [
+      "Afplakken en afschermen",
+      "Eerste laag plafonds schilderen",
+      "Tweede laag plafonds schilderen"
+    ],
+    opmerkingen: ""
+  },
+  {
+    id: 10, naam: "Schilderwerk wanden", fase: "Herstel en schilderwerk",
+    uitvoerder: "Zelf", extern: false, ruimtes: ["Hele woning (binnen + buiten)"],
+    vereist: "Klusdag 9 afgerond (plafonds droog)", vereistDagen: [9],
+    materiaal: [
+      { naam: "Warme basiskleur verf", aantal: "" },
+      { naam: "Groene accentkleur (woonkamer TV-wand)", aantal: "" },
+      { naam: "Kwasten voor randen en hoeken", aantal: "" }
+    ],
+    droogtijd: "Minimaal 4 tot 24 uur tussen de lagen, afhankelijk van de verf.",
+    taken: [
+      "Warme basistint aanbrengen in alle ruimtes",
+      "Groene accentwand woonkamer (alleen de TV-wand)",
+      "Accentwand ouderslaapkamer",
+      "Meterkastdeur meeschilderen in wandkleur",
+      "Buitenschilderwerk kozijnen, deuren en boeidelen (mits droog weer)"
+    ],
+    opmerkingen: "Buitenschilderwerk kan een aparte dag worden bij nat weer — houd rekening met een weerafhankelijke schuif."
+  },
+  {
+    id: 11, naam: "Deuren, kozijnen en plinten afwerken", fase: "Herstel en schilderwerk",
+    uitvoerder: "Zelf", extern: false, ruimtes: ["Hele woning"],
+    vereist: "Klusdag 10 afgerond", vereistDagen: [10],
+    materiaal: [
+      { naam: "Lakverf voor houtwerk", aantal: "" },
+      { naam: "Nieuwe deurklinken", aantal: "" },
+      { naam: "Deurlijsten/omlijsting", aantal: "" }
+    ],
+    droogtijd: "Lak: 12 tot 24 uur droogtijd per laag.",
+    taken: [
+      "Deuren en kozijnen schilderen",
+      "Nieuwe deurklinken monteren (o.a. ouderslaapkamer)",
+      "Deurlijsten plaatsen of vervangen",
+      "Deur naar de gang plaatsen (indien vervangen)"
+    ],
+    opmerkingen: ""
+  },
+  {
+    id: 12, naam: "Vloer leggen", fase: "Vloer, plinten en trap",
+    uitvoerder: "Vloerlegger (Barry)", extern: true,
+    ruimtes: ["Entree en gang", "Woonkamer", "Ouderslaapkamer", "Tweede slaapkamer", "Overloop"],
+    vereist: "Schilderwerk volledig droog, vloerisolatie klaar, materiaal/kleur/legpatroon definitief, exacte m² opgemeten, offerte Barry rond",
+    vereistDagen: [11],
+    materiaal: [
+      { naam: "Vloermateriaal (definitieve keuze)", aantal: "" },
+      { naam: "Ondervloer", aantal: "" }
+    ],
+    droogtijd: "Afhankelijk van het systeem (lijm/klik) — vraag de vloerlegger naar de exacte loop-/belastingtijd.",
+    taken: [
+      "Vloer leggen in alle afgesproken ruimtes",
+      "Aansluiting op keukenvloer en hal controleren",
+      "Drempels en overgangen afwerken"
+    ],
+    opmerkingen: "Externe partij — bescherm de nieuwe vloer meteen na het leggen."
+  },
+  {
+    id: 13, naam: "Vloerplinten monteren", fase: "Vloer, plinten en trap",
+    uitvoerder: "Zelf", extern: false,
+    ruimtes: ["Entree en gang", "Woonkamer", "Ouderslaapkamer", "Tweede slaapkamer", "Overloop"],
+    vereist: "Klusdag 12 afgerond, vloer volledig belastbaar", vereistDagen: [12],
+    materiaal: [
+      { naam: "Plinten (ca. 60 m¹)", aantal: "" },
+      { naam: "Plintlijm of -clips", aantal: "" }
+    ],
+    droogtijd: null,
+    taken: [
+      "Plinten op maat zagen",
+      "Plinten monteren in alle ruimtes met nieuwe vloer",
+      "Hoeken en overgangen afwerken"
+    ],
+    opmerkingen: ""
+  },
+  {
+    id: 14, naam: "Trap afwerken", fase: "Vloer, plinten en trap",
+    uitvoerder: "Zelf of timmerman", extern: false, ruimtes: ["Trap"],
+    vereist: "Besluit trapafwerking genomen, schilderwerk grotendeels klaar", vereistDagen: [10],
+    materiaal: [
+      { naam: "Overzettreden of trapbekleding", aantal: "" },
+      { naam: "Traploper (indien gekozen)", aantal: "" }
+    ],
+    droogtijd: null,
+    taken: [
+      "Treden en stootborden afwerken (schilderen en/of bekleden)",
+      "Leuning schilderen of vervangen",
+      "Traploper leggen (indien gekozen)",
+      "Verlichting op de trap aansluiten"
+    ],
+    opmerkingen: ""
+  },
+  {
+    id: 15, naam: "TV-wand / BESTÅ-meubel plaatsen", fase: "Interieur en oplevering",
+    uitvoerder: "Zelf", extern: false, ruimtes: ["Woonkamer"],
+    vereist: "Vloer en plinten klaar, meubel besteld en geleverd", vereistDagen: [13],
+    materiaal: [
+      { naam: "BESTÅ/tv-meubel onderdelen", aantal: "" },
+      { naam: "Bevestigingsmateriaal (zwevend ophangsysteem)", aantal: "" }
+    ],
+    droogtijd: null,
+    taken: [
+      "Zwevend TV-meubel monteren",
+      "Kabels wegwerken achter het meubel",
+      "Houtaccent of lattenwand plaatsen"
+    ],
+    opmerkingen: ""
+  },
+  {
+    id: 16, naam: "Verlichting monteren", fase: "Interieur en oplevering",
+    uitvoerder: "Zelf", extern: false, ruimtes: ["Hele woning"],
+    vereist: "Elektra klaar, definitieve lampenlijst, armaturen in huis", vereistDagen: [3],
+    materiaal: [
+      { naam: "Armaturen per ruimte (volgens lampenlijst)", aantal: "" },
+      { naam: "Lichtbronnen (warm wit, dimbaar)", aantal: "" }
+    ],
+    droogtijd: null,
+    taken: [
+      "Armaturen ophangen per ruimte",
+      "Spots en sfeerpunten woonkamer monteren",
+      "Schakelmateriaal testen",
+      "Smart-home instellingen configureren (indien van toepassing)"
+    ],
+    opmerkingen: ""
+  },
+  {
+    id: 17, naam: "Raamdecoratie", fase: "Interieur en oplevering",
+    uitvoerder: "Zelf", extern: false, ruimtes: ["Woonkamer", "Ouderslaapkamer", "Tweede slaapkamer"],
+    vereist: "Gordijnen/rails besteld en geleverd, schilderwerk droog", vereistDagen: [10],
+    materiaal: [
+      { naam: "Gordijnrails", aantal: "" },
+      { naam: "Gordijnen/raamdecoratie", aantal: "" }
+    ],
+    droogtijd: null,
+    taken: [
+      "Gordijnrails ophangen, zo hoog mogelijk",
+      "Gordijnen ophangen",
+      "Verduisterende raamdecoratie ouderslaapkamer monteren"
+    ],
+    opmerkingen: ""
+  },
+  {
+    id: 18, naam: "Meubels plaatsen", fase: "Interieur en oplevering",
+    uitvoerder: "Zelf", extern: false, ruimtes: ["Hele woning"],
+    vereist: "Vloer, plinten en schilderwerk klaar", vereistDagen: [13],
+    materiaal: [], droogtijd: null,
+    taken: [
+      "Meubels per ruimte plaatsen (zie Meubels per kamer)",
+      "Hoekbank positioneren",
+      "Laatste losse items uitpakken en plaatsen"
+    ],
+    opmerkingen: ""
+  },
+  {
+    id: 19, naam: "Restpunten en oplevering", fase: "Interieur en oplevering",
+    uitvoerder: "Zelf", extern: false, ruimtes: ["Hele woning"],
+    vereist: "Alle voorgaande klusdagen afgerond", vereistDagen: [15, 16, 17, 18],
+    materiaal: [], droogtijd: null,
+    taken: [
+      "Restpuntenlijst doorlopen (zie Oplevering)",
+      "Kitnaden en detailafwerking controleren",
+      "Ventilatie testen na kierdichting en isolatie",
+      "Dossier compleet maken: facturen, foto's, garanties"
+    ],
+    opmerkingen: "Zie de sectie Oplevering voor de volledige technische en dossier-checklist."
+  }
 ];
 
-const UIT_TE_ZOEKEN = [
-  "Heeft de woning een spouw? Endoscopisch laten vaststellen",
-  "Staat en toegankelijkheid van de kruipruimte, en of er water staat",
-  "Funderingstype en of er een funderingsonderzoek of gemeentedossier is",
-  "Is er asbest aanwezig, en waar",
-  "Staat van de groepenkast: aantal groepen en aardlekschakelaars",
-  "Materiaal van riolering en waterleiding",
-  "Welke ventilatie er nu is per ruimte",
-  "Heeft de vorige bewoner al ISDE of gemeentesubsidie aangevraagd",
-  "Welke aanvullende regeling gemeente Alphen aan den Rijn heeft",
-  "Leeftijd en staat van de dakbedekking van het dakterras",
-  "Exacte m² per ruimte opmeten voor de vloerbestelling",
-  "Is er een bouwkundig rapport van de aankoop, en wat staat erin",
-  "Parkeervergunning aanvragen: voorwaarden en wachttijd",
-  "Is het toilet beneden ook in 2023 vernieuwd of nog het oude"
-];
+/* Actieplanning: alles wat vooraf uitgezocht, besloten, aangevraagd, ingepland of
+   gekocht moet worden — samenvoeging van de oude Besluiten, Uit te zoeken en Acties.
+   blokkeertDag verwijst naar KLUSDAGEN[].id en drijft de "Blokkeert planning"-badge aan. */
+const ACTIEPLANNING = [
+  // Uitzoeken
+  { actie: "Heeft de woning een spouw? Endoscopisch laten vaststellen", categorie: "Uitzoeken", deadline: "Vóór alle andere offertes", wie: "Isolatiepartij", afhankelijkVan: "—", doorlooptijd: "1–2 weken", status: "Open", blokkeertDag: [6] },
+  { actie: "Staat en toegankelijkheid van de kruipruimte, en of er water staat", categorie: "Uitzoeken", deadline: "Vóór alle andere offertes", wie: "Isolatiepartij", afhankelijkVan: "—", doorlooptijd: "—", status: "Open", blokkeertDag: [6] },
+  { actie: "Funderingstype en of er een funderingsonderzoek of gemeentedossier is", categorie: "Uitzoeken", deadline: "Zo snel mogelijk", wie: "Zelf / gemeente", afhankelijkVan: "—", doorlooptijd: "—", status: "Open" },
+  { actie: "Is er asbest aanwezig, en waar", categorie: "Uitzoeken", deadline: "Vóór klusdag 1", wie: "Gecertificeerd bureau", afhankelijkVan: "—", doorlooptijd: "1 week", status: "Open", blokkeertDag: [1, 5] },
+  { actie: "Staat van de groepenkast: aantal groepen en aardlekschakelaars", categorie: "Uitzoeken", deadline: "Vóór elektra-offerte", wie: "Elektricien", afhankelijkVan: "—", doorlooptijd: "—", status: "Open" },
+  { actie: "Materiaal van riolering en waterleiding", categorie: "Uitzoeken", deadline: "Zo snel mogelijk", wie: "Loodgieter", afhankelijkVan: "—", doorlooptijd: "—", status: "Open" },
+  { actie: "Welke ventilatie er nu is per ruimte", categorie: "Uitzoeken", deadline: "Vóór isolatiewerk", wie: "Zelf", afhankelijkVan: "—", doorlooptijd: "—", status: "Open" },
+  { actie: "Is er een bouwkundig rapport van de aankoop, en wat staat erin", categorie: "Uitzoeken", deadline: "Zo snel mogelijk", wie: "Zelf", afhankelijkVan: "—", doorlooptijd: "—", status: "Open" },
+  { actie: "Exacte m² per ruimte opmeten en definitief vaststellen", categorie: "Uitzoeken", deadline: "Vóór vloer bestellen", wie: "Zelf / Barry", afhankelijkVan: "—", doorlooptijd: "—", status: "Open", blokkeertDag: [12] },
+  { actie: "Is het toilet beneden ook in 2023 vernieuwd of nog het oude", categorie: "Uitzoeken", deadline: "Zo snel mogelijk", wie: "Zelf", afhankelijkVan: "—", doorlooptijd: "—", status: "Open" },
+  { actie: "Parkeervergunning aanvragen: voorwaarden en wachttijd", categorie: "Uitzoeken", deadline: "Zo snel mogelijk", wie: "Zelf", afhankelijkVan: "—", doorlooptijd: "—", status: "Open" },
 
-const ACTIES = [
-  { actie: "Bouwkundige keuring plannen als die er niet is", wie: "Keuringsbedrijf", wanneer: "Direct", status: "Open" },
-  { actie: "Kruipruimte- en spouwonderzoek", wie: "Isolatiepartij", wanneer: "Vóór alle andere offertes", status: "Open" },
-  { actie: "Offerte vloer definitief maken", wie: "Barry", wanneer: "Na opmeten", status: "Open" },
-  { actie: "Elektra inventarisatie en offerte", wie: "Thomas van Ooijen of Ben Nikkels", wanneer: "Vóór schilderwerk", status: "Open" },
-  { actie: "Algemeen klus- en timmerwerk bespreken", wie: "Marcel Haagsman of John", wanneer: "Vóór start", status: "Open" },
-  { actie: "Isolatie-offertes vloer en dak", wie: "Isolatiepartij", wanneer: "Vóór vloerplanning", status: "Open" },
-  { actie: "Dakinspectie", wie: "Dakdekker", wanneer: "Vóór dakisolatie", status: "Open" },
-  { actie: "Offerte gevelherstel en buitenschilderwerk", wie: "Schilder of gevelpartij", wanneer: "Vóór buitenwerk", status: "Open" },
-  { actie: "Subsidiehistorie adres controleren", wie: "Zelf, via gemeente of RVO", wanneer: "Vóór eigen aanvraag", status: "Open" },
-  { actie: "Verfkleuren definitief kiezen", wie: "Zelf", wanneer: "Vóór inkoop", status: "Open" },
-  { actie: "Lampenlijst per ruimte maken", wie: "Zelf", wanneer: "Vóór elektricien", status: "Open" },
-  { actie: "Meubels inventariseren: houden, verkopen, weg", wie: "Zelf", wanneer: "Vóór verhuizing", status: "Open" },
-  { actie: "Container, beschermmateriaal en gereedschap plannen", wie: "Zelf", wanneer: "1–2 weken vóór start", status: "Open" },
-  { actie: "Opstalverzekering, nutsbedrijven en inschrijving regelen", wie: "Zelf", wanneer: "Rond sleuteloverdracht", status: "Open" }
+  // Beslissen
+  { actie: "Vliering: alleen opslag of ooit bewoonbaar", categorie: "Beslissen", deadline: "Vóór isolatie-offerte", wie: "Zelf", afhankelijkVan: "—", doorlooptijd: "—", status: "Open", blokkeertDag: [5, 6] },
+  { actie: "Gevelisolatie doen of niet, na het spouwonderzoek", categorie: "Beslissen", deadline: "Vóór schilderwerk", wie: "Zelf", afhankelijkVan: "Spouwonderzoek", doorlooptijd: "—", status: "Open", blokkeertDag: [10] },
+  { actie: "Schilderwerk zelf doen of uitbesteden", categorie: "Beslissen", deadline: "—", wie: "Zelf", afhankelijkVan: "—", doorlooptijd: "—", status: "Gedaan", opmerkingen: "Besloten: zelf doen, binnen en buiten." },
+  { actie: "Airco nu voorbereiden of niet", categorie: "Beslissen", deadline: "Vóór elektricien", wie: "Zelf", afhankelijkVan: "—", doorlooptijd: "—", status: "Open", blokkeertDag: [2, 3] },
+  { actie: "Keukenvloer: behouden, vervangen of laten aansluiten", categorie: "Beslissen", deadline: "Vóór vloerbestelling", wie: "Zelf", afhankelijkVan: "—", doorlooptijd: "—", status: "Open", blokkeertDag: [12] },
+  { actie: "Vloer: materiaal, kleur, legpatroon", categorie: "Beslissen", deadline: "Vóór bestelling", wie: "Zelf", afhankelijkVan: "—", doorlooptijd: "—", status: "Open", opmerkingen: "Visgraat vraagt 15 tot 20 procent meer materiaal en meer legkosten.", blokkeertDag: [12] },
+  { actie: "Functie tweede slaapkamer", categorie: "Beslissen", deadline: "Vóór elektricien", wie: "Zelf", afhankelijkVan: "—", doorlooptijd: "—", status: "Open", blokkeertDag: [2, 3] },
+  { actie: "Wijnkoelkast: wel of niet, en waar", categorie: "Beslissen", deadline: "Vóór elektricien", wie: "Zelf", afhankelijkVan: "—", doorlooptijd: "—", status: "Open", blokkeertDag: [2, 3] },
+  { actie: "Schuifdeur keuken verwijderen", categorie: "Beslissen", deadline: "Vóór klusdag 1", wie: "Zelf", afhankelijkVan: "—", doorlooptijd: "—", status: "Open", blokkeertDag: [1] },
+  { actie: "Deur naar de gang: houden, vervangen, met glas", categorie: "Beslissen", deadline: "Vóór schilderwerk", wie: "Zelf", afhankelijkVan: "Bestellevertijd deur", doorlooptijd: "—", status: "Open", blokkeertDag: [11] },
+  { actie: "Trapafwerking: schilderen, bekleden of beide", categorie: "Beslissen", deadline: "Vóór klusdag 14", wie: "Zelf", afhankelijkVan: "—", doorlooptijd: "—", status: "Open", blokkeertDag: [14] },
+  { actie: "Definitieve verfkleuren per ruimte", categorie: "Beslissen", deadline: "Vóór inkoop verf", wie: "Zelf", afhankelijkVan: "—", doorlooptijd: "—", status: "Open", blokkeertDag: [9, 10] },
+  { actie: "Smart home: alleen verlichting of breder", categorie: "Beslissen", deadline: "Vóór elektricien", wie: "Zelf", afhankelijkVan: "—", doorlooptijd: "—", status: "Open", blokkeertDag: [2, 3] },
+  { actie: "Elektraplan definitief maken", categorie: "Beslissen", deadline: "Vóór elektricien", wie: "Zelf", afhankelijkVan: "Bovenstaande elektra-beslissingen", doorlooptijd: "—", status: "Open", blokkeertDag: [3] },
+  { actie: "Positie TV, stopcontacten en kabeldoorvoer bepalen", categorie: "Beslissen", deadline: "Vóór elektra voorbereiden", wie: "Zelf", afhankelijkVan: "—", doorlooptijd: "—", status: "Open", blokkeertDag: [2] },
+  { actie: "BESTÅ/tv-meubel: maatvoering, indeling, fronten en bovenblad bepalen", categorie: "Beslissen", deadline: "Zo vroeg mogelijk", wie: "Zelf", afhankelijkVan: "—", doorlooptijd: "Levertijd 6–10 weken bij maatwerk", status: "Open" },
+  { actie: "Beslissen of BESTÅ wordt meegeschilderd", categorie: "Beslissen", deadline: "Vóór bestellen BESTÅ", wie: "Zelf", afhankelijkVan: "Maatvoering BESTÅ", doorlooptijd: "—", status: "Open" },
+  { actie: "Vloerplinten kiezen", categorie: "Beslissen", deadline: "Vóór bestelling", wie: "Zelf", afhankelijkVan: "Keuze vloer", doorlooptijd: "—", status: "Open" },
+  { actie: "Deur- en kozijnlijsten bepalen", categorie: "Beslissen", deadline: "Vóór bestelling", wie: "Zelf", afhankelijkVan: "—", doorlooptijd: "—", status: "Open" },
+  { actie: "Gordijnen en raamdecoratie kiezen", categorie: "Beslissen", deadline: "Vóór klusdag 17", wie: "Zelf", afhankelijkVan: "—", doorlooptijd: "Levertijd", status: "Open" },
+  { actie: "Meubels inventariseren: houden, verkopen, weg", categorie: "Beslissen", deadline: "Vóór verhuizing", wie: "Zelf", afhankelijkVan: "—", doorlooptijd: "—", status: "Open" },
+  { actie: "Dakterras en tuin: nu of volgend seizoen", categorie: "Beslissen", deadline: "Kan later", wie: "Zelf", afhankelijkVan: "Budget en planning", doorlooptijd: "—", status: "Open" },
+
+  // Offerte aanvragen
+  { actie: "Kruipruimte- en spouwonderzoek inplannen", categorie: "Offerte aanvragen", deadline: "Vóór alle andere offertes", wie: "Isolatiepartij", afhankelijkVan: "—", doorlooptijd: "—", status: "Open", blokkeertDag: [6] },
+  { actie: "Isolatie-offertes vloer en dak aanvragen en werkzaamheden inplannen", categorie: "Offerte aanvragen", deadline: "Vóór vloerplanning", wie: "Isolatiepartij", afhankelijkVan: "Spouw- en kruipruimteonderzoek", doorlooptijd: "—", status: "Open", blokkeertDag: [6] },
+  { actie: "Offerte vloer definitief maken", categorie: "Offerte aanvragen", deadline: "Na opmeten", wie: "Barry", afhankelijkVan: "Exacte m² bekend", doorlooptijd: "—", status: "Open", blokkeertDag: [12] },
+  { actie: "Elektra inventarisatie en offerte", categorie: "Offerte aanvragen", deadline: "Vóór schilderwerk", wie: "Thomas van Ooijen of Ben Nikkels", afhankelijkVan: "Elektraplan definitief", doorlooptijd: "—", status: "Open", blokkeertDag: [3] },
+  { actie: "Offerte gevelherstel en buitenschilderwerk", categorie: "Offerte aanvragen", deadline: "Vóór buitenwerk", wie: "Schilder of gevelpartij", afhankelijkVan: "—", doorlooptijd: "—", status: "Open" },
+  { actie: "Dakinspectie inplannen", categorie: "Offerte aanvragen", deadline: "Vóór dakisolatie", wie: "Dakdekker", afhankelijkVan: "—", doorlooptijd: "—", status: "Open", blokkeertDag: [6] },
+
+  // Vakman inplannen
+  { actie: "Bouwkundige keuring plannen als die er niet is", categorie: "Vakman inplannen", deadline: "Direct", wie: "Keuringsbedrijf", afhankelijkVan: "—", doorlooptijd: "—", status: "Open" },
+  { actie: "Algemeen klus- en timmerwerk bespreken", categorie: "Vakman inplannen", deadline: "Vóór klusdag 1", wie: "Marcel Haagsman of John", afhankelijkVan: "—", doorlooptijd: "—", status: "Open", blokkeertDag: [4] },
+  { actie: "Vlieringtrap: zelf maken of timmerman inplannen", categorie: "Vakman inplannen", deadline: "Vóór klusdag 5", wie: "Zelf / timmerman", afhankelijkVan: "—", doorlooptijd: "—", status: "Open", blokkeertDag: [5] },
+  { actie: "Trap-uitvoerder inplannen indien uitbesteed", categorie: "Vakman inplannen", deadline: "Vóór klusdag 14", wie: "Zelf / timmerman", afhankelijkVan: "Trapafwerking gekozen", doorlooptijd: "—", status: "Open", blokkeertDag: [14] },
+
+  // Bestellen / inkopen
+  { actie: "Verf en schildermaterialen bestellen", categorie: "Bestellen / inkopen", deadline: "Vóór klusdag 9", wie: "Zelf", afhankelijkVan: "Verfkleuren definitief", doorlooptijd: "—", status: "Open", blokkeertDag: [9] },
+  { actie: "BESTÅ/tv-meubel bestellen", categorie: "Bestellen / inkopen", deadline: "Na definitief ontwerp", wie: "Zelf", afhankelijkVan: "Maatvoering en meeschilderen bepaald", doorlooptijd: "Levertijd 6–10 weken", status: "Open", blokkeertDag: [15] },
+  { actie: "Deurklink slaapkamer bestellen/vervangen", categorie: "Bestellen / inkopen", deadline: "Vóór klusdag 11", wie: "Zelf", afhankelijkVan: "—", doorlooptijd: "—", status: "Open" },
+  { actie: "Deur- en kozijnlijsten bestellen", categorie: "Bestellen / inkopen", deadline: "Vóór klusdag 11", wie: "Zelf", afhankelijkVan: "Lijsten bepaald", doorlooptijd: "—", status: "Open", blokkeertDag: [11] },
+  { actie: "Trapmateriaal bestellen (overzettreden/bekleding/traploper)", categorie: "Bestellen / inkopen", deadline: "Vóór klusdag 14", wie: "Zelf", afhankelijkVan: "Trapafwerking gekozen", doorlooptijd: "—", status: "Open", blokkeertDag: [14] },
+  { actie: "Gordijnen/raamdecoratie bestellen", categorie: "Bestellen / inkopen", deadline: "Vóór klusdag 17", wie: "Zelf", afhankelijkVan: "Keuze gemaakt", doorlooptijd: "Levertijd", status: "Open", blokkeertDag: [17] },
+  { actie: "Definitieve lampenlijst maken en armaturen bestellen", categorie: "Bestellen / inkopen", deadline: "Vóór klusdag 16", wie: "Zelf", afhankelijkVan: "—", doorlooptijd: "—", status: "Open", blokkeertDag: [16] },
+  { actie: "Container regelen", categorie: "Bestellen / inkopen", deadline: "1–2 weken vóór klusdag 1", wie: "Zelf", afhankelijkVan: "—", doorlooptijd: "—", status: "Open", blokkeertDag: [1] },
+  { actie: "Beschermmateriaal kopen (folie, karton, stofzeilen)", categorie: "Bestellen / inkopen", deadline: "Vóór klusdag 1", wie: "Zelf", afhankelijkVan: "—", doorlooptijd: "—", status: "Open", blokkeertDag: [1] },
+  { actie: "Benodigde gereedschappen controleren en aanvullen", categorie: "Bestellen / inkopen", deadline: "Vóór klusdag 1", wie: "Zelf", afhankelijkVan: "—", doorlooptijd: "—", status: "Open", opmerkingen: "Zie de sectie Gereedschap.", blokkeertDag: [1] },
+
+  // Administratie / subsidie
+  { actie: "Subsidiehistorie adres controleren", categorie: "Administratie / subsidie", deadline: "Vóór eigen aanvraag", wie: "Zelf, via gemeente of RVO", afhankelijkVan: "—", doorlooptijd: "—", status: "Open" },
+  { actie: "Gemeentelijke verduurzamingssubsidies controleren (Alphen aan den Rijn)", categorie: "Administratie / subsidie", deadline: "Vóór ISDE-aanvraag", wie: "Zelf", afhankelijkVan: "—", doorlooptijd: "—", status: "Open" },
+  { actie: "Opstalverzekering, nutsbedrijven en inschrijving regelen", categorie: "Administratie / subsidie", deadline: "1–2 weken vóór sleuteloverdracht", wie: "Zelf", afhankelijkVan: "—", doorlooptijd: "—", status: "Open" },
+  { actie: "ISDE-aanvraag indienen", categorie: "Administratie / subsidie", deadline: "Binnen 24 maanden na uitvoering, na inschrijving op adres", wie: "Zelf", afhankelijkVan: "Isolatiewerk afgerond, facturen compleet", doorlooptijd: "—", status: "Open" }
 ];
 
 const RISICOS = [
@@ -483,26 +815,26 @@ const OPLEVERING = {
 const RISICO_VUISTREGEL = "De vuistregel: niets afwerken voordat deze twee zijn afgevinkt. Verf en vloer zijn het goedkoopst om nu uit te stellen en het duurst om later opnieuw te doen.";
 
 const TOOLS = [
-  "Kwasten en rollers (diverse maten)",
-  "Verfbakken en afplaktape",
-  "Schuurmachine en schuurpapier",
-  "Verfkrabber en plamuurmes",
-  "Accuboormachine",
-  "Slagboormachine (voor steen/beton)",
-  "Schroevendraaierset",
-  "Waterpas",
-  "Rolmaat",
-  "Hamer",
-  "Figuurzaag of handzaag",
-  "Ladder (trap- en rechte ladder)",
-  "Bouwstofzuiger",
-  "Kruiwagen of bouwemmers",
-  "Afvalzakken en stofzeilen",
-  "Werkhandschoenen en veiligheidsbril",
-  "Stofmaskers (FFP2)",
-  "Kitpistool",
-  "Nietpistool (tacker)",
-  "Verlengsnoer en bouwlamp"
+  { naam: "Kwasten en rollers (diverse maten)", aantal: "" },
+  { naam: "Verfbakken en afplaktape", aantal: "" },
+  { naam: "Schuurmachine en schuurpapier", aantal: "" },
+  { naam: "Verfkrabber en plamuurmes", aantal: "" },
+  { naam: "Accuboormachine", aantal: "" },
+  { naam: "Slagboormachine (voor steen/beton)", aantal: "" },
+  { naam: "Schroevendraaierset", aantal: "" },
+  { naam: "Waterpas", aantal: "" },
+  { naam: "Rolmaat", aantal: "" },
+  { naam: "Hamer", aantal: "" },
+  { naam: "Figuurzaag of handzaag", aantal: "" },
+  { naam: "Ladder (trap- en rechte ladder)", aantal: "" },
+  { naam: "Bouwstofzuiger", aantal: "" },
+  { naam: "Kruiwagen of bouwemmers", aantal: "" },
+  { naam: "Afvalzakken en stofzeilen", aantal: "" },
+  { naam: "Werkhandschoenen en veiligheidsbril", aantal: "" },
+  { naam: "Stofmaskers (FFP2)", aantal: "" },
+  { naam: "Kitpistool", aantal: "" },
+  { naam: "Nietpistool (tacker)", aantal: "" },
+  { naam: "Verlengsnoer en bouwlamp", aantal: "" }
 ];
 
 /* Plattegronden: plaats een afbeelding op images/plattegronden/<slug>.jpg */
