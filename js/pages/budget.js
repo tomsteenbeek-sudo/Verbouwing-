@@ -1,5 +1,5 @@
-import { Budget } from "../db.js";
-import { renderNav, euro, escapeHtml, reportError, toast, openModal, closeModal, confirmDialog } from "../ui.js";
+import { Budget } from "../db.js?v=1";
+import { renderNav, euro, escapeHtml, reportError, toast, openModal, closeModal, confirmDialog } from "../ui.js?v=1";
 
 renderNav();
 document.getElementById("year").textContent = new Date().getFullYear();

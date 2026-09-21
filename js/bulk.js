@@ -2,7 +2,7 @@
 // toewijzen aan persoon / (werkzaamheden) verplaatsen naar klusdag / status
 // wijzigen / verwijderen. Eén implementatie, hergebruikt op Kamers, Planning
 // en Acties.
-import { escapeHtml } from "./ui.js";
+import { escapeHtml } from "./ui.js?v=1";
 
 export function renderBulkBar(container, {
   selectedIds, people, workdays, statuses,

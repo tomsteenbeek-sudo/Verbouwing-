@@ -1,8 +1,8 @@
-import { Rooms, RoomImages, Workdays, People, Tasks, Materials } from "../db.js";
-import { renderNav, escapeHtml, reportError, toast, openModal, closeModal, confirmDialog } from "../ui.js";
-import { taskCardHtml, wireTaskCards, openTaskForm, TASK_STATUSES } from "../task-shared.js";
-import { renderBulkBar, wireSelectCheckboxes } from "../bulk.js";
-import { openLightbox } from "../lightbox.js";
+import { Rooms, RoomImages, Workdays, People, Tasks, Materials } from "../db.js?v=1";
+import { renderNav, escapeHtml, reportError, toast, openModal, closeModal, confirmDialog } from "../ui.js?v=1";
+import { taskCardHtml, wireTaskCards, openTaskForm, TASK_STATUSES } from "../task-shared.js?v=1";
+import { renderBulkBar, wireSelectCheckboxes } from "../bulk.js?v=1";
+import { openLightbox } from "../lightbox.js?v=1";
 
 renderNav();
 document.getElementById("year").textContent = new Date().getFullYear();

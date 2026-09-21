@@ -1,5 +1,5 @@
-import { Handover } from "../db.js";
-import { renderNav, escapeHtml, reportError, toast } from "../ui.js";
+import { Handover } from "../db.js?v=1";
+import { renderNav, escapeHtml, reportError, toast } from "../ui.js?v=1";
 
 renderNav();
 document.getElementById("year").textContent = new Date().getFullYear();
