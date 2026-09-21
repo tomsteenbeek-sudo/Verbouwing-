@@ -6,6 +6,7 @@ document.getElementById("year").textContent = new Date().getFullYear();
 const FLOORPLANS = [
   { slug: "begane-grond", naam: "Begane grond" },
   { slug: "verdieping", naam: "Verdieping" },
+  { slug: "zolder", naam: "Zolder" },
 ];
 
 document.getElementById("floorplan-grid").innerHTML = FLOORPLANS.map((f) => `
