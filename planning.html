@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Planning — Verbouwplan Leliestraat 27</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css?v=2">
+</head>
+<body>
+
+<div id="app-nav"></div>
+
+<header class="page-header">
+  <div class="wrap">
+    <div>
+      <div class="eyebrow">Wat doen we vandaag?</div>
+      <h1>Planning</h1>
+      <p>Per klusdag: wat moet er gebeuren, wie doet het, en wat moet er eerst klaar zijn. Verplaats een werkzaamheid met de dropdown als iets niet lukt vandaag.</p>
+    </div>
+    <div class="actions-row">
+      <button class="btn-secondary" id="add-workday-btn">+ Klusdag</button>
+      <button class="btn-primary" id="add-task-btn">+ Werkzaamheid</button>
+    </div>
+  </div>
+</header>
+
+<main class="wrap" style="padding:36px 20px;">
+  <div class="filter-select-row" id="filter-bar"></div>
+  <div id="planning-root"><div class="loading-state">Laden…</div></div>
+</main>
+
+<footer>
+  <div class="wrap">Verbouwplan Leliestraat 27 · werkdocument · <span id="year"></span></div>
+</footer>
+
+<script type="module" src="js/pages/planning.js"></script>
+</body>
+</html>

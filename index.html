@@ -3,315 +3,57 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Verbouwplan Leliestraat 27</title>
-<meta name="description" content="Verbouwplan per kamer: huidige staat, gewenst resultaat, acties, budget en planning.">
+<title>Dashboard — Verbouwplan Leliestraat 27</title>
+<meta name="description" content="Verbouw-app: dashboard met de eerstvolgende klusdag, voortgang, acties en waarschuwingen.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=1">
+<link rel="stylesheet" href="css/style.css?v=2">
 </head>
 <body>
 
-<nav class="site-nav">
-  <div class="wrap">
-    <a class="brand" href="#top">Verbouwplan <span>Leliestraat 27</span></a>
-    <button class="nav-toggle" id="nav-toggle" aria-label="Menu">
-      <span></span><span></span><span></span>
-    </button>
-    <div class="nav-links">
-      <a href="#overzicht">Overzicht</a>
-      <a href="#kamers">Kamers</a>
-      <a href="#plattegronden">Plattegronden</a>
-      <a href="#verduurzaming">Verduurzaming</a>
-      <a href="#budget">Budget</a>
-      <a href="#uitvoeringsplanning">Uitvoeringsplanning</a>
-      <a href="#actieplanning">Actieplanning</a>
-      <a href="#gereedschap">Gereedschap</a>
-      <a href="#risicos">Risico's</a>
-      <a href="#oplevering">Oplevering</a>
-      <a href="#buiten-scope">Buiten scope</a>
-    </div>
-  </div>
-</nav>
+<div id="app-nav"></div>
 
-<header class="hero" id="top">
+<header class="page-header">
   <div class="wrap">
-    <div class="hero-top">
-      <div>
-        <h1 id="hero-title">Verbouwplan</h1>
-        <div class="place" id="hero-place"></div>
-        <div class="sub" id="hero-sub"></div>
-      </div>
-      <button class="reset-btn" id="reset-progress">Voortgang wissen op dit apparaat</button>
-    </div>
-    <div class="stat-row" id="stat-row"></div>
-    <div class="progress-wrap">
-      <div class="progress-label">
-        <span id="progress-label-text"></span>
-        <span id="progress-pct"></span>
-      </div>
-      <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+    <div>
+      <div class="eyebrow">Verbouwplan Leliestraat 27</div>
+      <h1>Dashboard</h1>
+      <p>Een compact overzicht: wat vandaag telt, wat nog open staat en waar je op moet letten.</p>
     </div>
   </div>
 </header>
 
-<main>
-
-  <section class="section" id="overzicht">
-    <div class="wrap">
-      <div class="section-head">
-        <div class="eyebrow">Woningprofiel</div>
-        <h2>Wat voor huis dit is, en wat dat betekent voor de scope</h2>
-      </div>
-      <div class="profile-grid" id="profile-grid"></div>
-      <p class="source-note" id="source-note"></p>
+<main class="wrap" style="padding:36px 20px;" id="dash-root">
+  <div class="two-col" style="margin-bottom:28px;align-items:start;">
+    <div class="card pad" id="next-workday">
+      <div class="loading-state">Laden…</div>
     </div>
-  </section>
-
-  <section class="section" id="plattegronden">
-    <div class="wrap">
-      <div class="section-head">
-        <div class="eyebrow">Huis</div>
-        <h2>Plattegronden</h2>
-        <p>Plaats een afbeelding per verdieping op <code>images/plattegronden/</code> — die verschijnt hier automatisch.</p>
-      </div>
-      <div class="floorplan-grid" id="floorplan-grid"></div>
-    </div>
-  </section>
-
-  <section class="section" id="kamers">
-    <div class="wrap">
-      <div class="section-head">
-        <div class="eyebrow">Per ruimte</div>
-        <h2>Kamers en buitenruimtes</h2>
-        <p>Klik op een kamer voor de volledige actielijst, de situatie nu versus straks, en straks ook het ontwerp. Vink acties af zodra ze klaar zijn.</p>
-      </div>
-      <div class="filter-row">
-        <button class="filter-btn active" data-filter="alle">Alle ruimtes</button>
-        <button class="filter-btn" data-filter="begane-grond">Begane grond</button>
-        <button class="filter-btn" data-filter="verdieping">Verdieping</button>
-        <button class="filter-btn" data-filter="buiten">Buiten</button>
-      </div>
-      <div class="room-grid" id="room-grid"></div>
-    </div>
-  </section>
-
-  <section class="section" id="verduurzaming">
-    <div class="wrap">
-      <div class="section-head">
-        <div class="eyebrow">Van label E omhoog</div>
-        <h2>Verduurzaming</h2>
-        <p>De grootste winst bij een woning uit 1929 met al HR++ glas zit in de vloer en het dak — het goedkoopst per bespaarde kWh. De gevel is het grote onbekende en bepaalt of je van E naar D komt of verder.</p>
-      </div>
-
-      <h3 style="font-size:0.98rem;">Volgorde</h3>
-      <div class="flow" id="fase-flow-duurzaam" style="margin-bottom:6px;"></div>
-      <p style="color:var(--text-muted);font-size:0.88rem;margin-bottom:28px;">Vloer en dak zijn de no-regret maatregelen: ze kunnen altijd, ze zitten uit het zicht en ze moeten klaar zijn vóór de nieuwe vloer gelegd wordt. De gevel wacht op het onderzoek: spouw aanwezig → relatief goedkope spouwisolatie; massief → aparte afweging en budget.</p>
-
-      <h3 style="font-size:0.98rem;">Onderzoek en inspectie — eerst, vóór alles</h3>
-      <div class="table-scroll" style="margin-bottom:28px;">
-        <table>
-          <thead><tr><th>Werk</th><th>Waarom</th><th>Wie</th></tr></thead>
-          <tbody id="onderzoek-body"></tbody>
-        </table>
-      </div>
-
-      <h3 style="font-size:0.98rem;">Subsidie: ISDE</h3>
-      <p style="color:var(--text-muted);font-size:0.88rem;">De ISDE werkt met een vast bedrag per m². Twee energiebesparende maatregelen binnen 24 maanden verdubbelt dat bedrag — dus vloer én dak plannen, niet één van beide.</p>
-      <div class="table-scroll" style="margin-bottom:16px;">
-        <table>
-          <thead><tr><th>Punt</th><th>Wat het betekent voor dit project</th></tr></thead>
-          <tbody id="isde-table-body"></tbody>
-        </table>
-      </div>
-      <p style="font-size:0.8rem;color:var(--text-muted);">Bronnen: <a href="https://www.milieucentraal.nl/energie-besparen/energiesubsidies-en-leningen/subsidie-voor-isolatie/" target="_blank" rel="noopener">Milieu Centraal</a>, <a href="https://simpelsubsidie.nl/blogs/Isolatie-subsidie-2026-Bedragen-eisen-en-tips" target="_blank" rel="noopener">Simpel Subsidie</a>, <a href="https://www.isoguard.nl/kennisbank/subsidie-vloerisolatie-2026/" target="_blank" rel="noopener">ISOGUARD</a>, <a href="https://devriesisolatie.nl/isolatiesubsidie/wat-verandert-er-voor-isolatie-subsidie-isde-in-2026/" target="_blank" rel="noopener">De Vries Isolatie</a>. Voorwaarden en bedragen kunnen wijzigen: controleer vóór opdracht de actuele RVO-pagina.</p>
-
-      <h3 style="font-size:0.98rem;margin-top:22px;">Let op</h3>
-      <ul class="plain-list" id="isde-letop"></ul>
-    </div>
-  </section>
-
-  <section class="section" id="budget">
-    <div class="wrap">
-      <div class="section-head">
-        <div class="eyebrow">Herziene verdeling</div>
-        <h2>Budget</h2>
-        <p>Totaal blijft € 30.000. De verdeling verschuift: minder naar gevelisolatie en glas, meer naar elektra, gevelherstel en dak. Schilderwerk en klein timmerwerk doe je zelf, dus daar staat alleen materiaal.</p>
-      </div>
-
-      <div class="two-col" style="margin-bottom:28px;">
-        <div>
-          <h3 style="font-size:0.98rem;">Begroot</h3>
-          <div class="card pad" id="budget-bars"></div>
-        </div>
-        <div>
-          <h3 style="font-size:0.98rem;">Werkelijk vs. doel</h3>
-          <div class="card pad" id="budget-werkelijk"></div>
-        </div>
-      </div>
-
-      <div class="two-col">
-        <div>
-          <h3 style="font-size:0.98rem;">Verduurzaming</h3>
-          <div class="table-scroll">
-            <table>
-              <thead><tr><th>Maatregel</th><th>Begroot</th><th>Werkelijk</th><th>Uitvoering</th></tr></thead>
-              <tbody id="budget-verduurzaming-body"></tbody>
-            </table>
-          </div>
-        </div>
-        <div>
-          <h3 style="font-size:0.98rem;">Regulier</h3>
-          <div class="table-scroll">
-            <table>
-              <thead><tr><th>Post</th><th>Begroot</th><th>Werkelijk</th><th>Uitvoering</th></tr></thead>
-              <tbody id="budget-regulier-body"></tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-
-      <div class="note warn" style="margin-top:26px;">
-        <strong>Wat hier niet in past.</strong> <span id="budget-niet-in"></span>
-      </div>
-
-      <h3 style="font-size:0.98rem;margin-top:26px;">De twee grootste onzekerheden</h3>
-      <ol class="plain-list" id="budget-onzekerheden"></ol>
-    </div>
-  </section>
-
-  <section class="section" id="uitvoeringsplanning">
-    <div class="wrap">
-      <div class="section-head">
-        <div class="eyebrow">Wat doen we vandaag?</div>
-        <h2>Uitvoeringsplanning</h2>
-        <p>De praktische dagplanning voor tijdens het klussen. Globale fasering en harde afhankelijkheden bovenaan, daaronder de klusdagen met een echte checklist per dag.</p>
-      </div>
-
-      <div class="flow" id="fase-flow"></div>
-      <ol class="rule-list" id="harde-volgorde"></ol>
-      <p style="color:var(--text-muted);font-size:0.88rem;margin-top:14px;margin-bottom:30px;" id="planning-toelichting"></p>
-
-      <h3 style="font-size:0.98rem;">Klusdagen</h3>
-      <p style="color:var(--text-muted);font-size:0.85rem;margin-top:-6px;" id="klusdagen-voortgang"></p>
-      <div class="filter-row">
-        <button class="filter-btn klusdag-filter-btn active" data-filter="alle">Alle</button>
-        <button class="filter-btn klusdag-filter-btn" data-filter="vandaag">Vandaag</button>
-        <button class="filter-btn klusdag-filter-btn" data-filter="komende">Komende klusdagen</button>
-        <button class="filter-btn klusdag-filter-btn" data-filter="gereed">Gereed</button>
-      </div>
-      <div class="klusdag-list" id="klusdagen-list"></div>
-    </div>
-  </section>
-
-  <section class="section" id="actieplanning">
-    <div class="wrap">
-      <div class="section-head">
-        <div class="eyebrow">Wat moet ik nog regelen?</div>
-        <h2>Actieplanning</h2>
-        <p>Alles wat vooraf uitgezocht, besloten, aangevraagd, ingepland of gekocht moet worden, zodat de verbouwing niet stilvalt. Wijs een persoon toe — wordt lokaal onthouden.</p>
-      </div>
-      <p style="color:var(--text-muted);font-size:0.85rem;margin-top:-10px;" id="actieplanning-voortgang"></p>
-      <div class="filter-row">
-        <button class="filter-btn actie-filter-btn active" data-filter="alle">Alle</button>
-        <button class="filter-btn actie-filter-btn" data-filter="Uitzoeken">Uitzoeken</button>
-        <button class="filter-btn actie-filter-btn" data-filter="Beslissen">Beslissen</button>
-        <button class="filter-btn actie-filter-btn" data-filter="Offerte aanvragen">Offerte aanvragen</button>
-        <button class="filter-btn actie-filter-btn" data-filter="Vakman inplannen">Vakman inplannen</button>
-        <button class="filter-btn actie-filter-btn" data-filter="Bestellen / inkopen">Bestellen / inkopen</button>
-        <button class="filter-btn actie-filter-btn" data-filter="Administratie / subsidie">Administratie / subsidie</button>
-      </div>
-      <div id="actieplanning-list"></div>
-    </div>
-  </section>
-
-  <section class="section" id="gereedschap">
-    <div class="wrap">
-      <div class="section-head">
-        <div class="eyebrow">Voorbereiding</div>
-        <h2>Gereedschap</h2>
-        <p>Een startlijst voor het zelf-werk (schilderen, klein timmerwerk, sloop). Vink af wat je al hebt, en voeg zelf toe wat ontbreekt.</p>
-      </div>
-      <div class="card check-card">
-        <ul class="action-list" id="tools-list"></ul>
-        <form id="add-tool-form" class="add-row">
-          <input type="text" id="add-tool-input" placeholder="Gereedschap toevoegen…">
-          <button type="submit">Toevoegen</button>
-        </form>
+    <div>
+      <div class="dashboard-grid" style="margin-bottom:0;">
+        <div class="card dashboard-tile" id="stat-voortgang"></div>
+        <div class="card dashboard-tile" id="stat-acties"></div>
+        <div class="card dashboard-tile" id="stat-urgent"></div>
+        <div class="card dashboard-tile" id="stat-materialen"></div>
       </div>
     </div>
+  </div>
+
+  <section id="dash-warnings-section" class="section" style="padding-top:0;">
+    <h3 style="font-size:1rem;margin-bottom:12px;">Waarschuwingen</h3>
+    <ul class="warning-list" id="dash-warnings"></ul>
   </section>
 
-  <section class="section" id="risicos">
-    <div class="wrap">
-      <div class="section-head">
-        <div class="eyebrow">Vóór start</div>
-        <h2>Risico's</h2>
-        <p>Twee dingen die, als ze tegenvallen, het hele plan omgooien. Allemaal te checken in week één, voordat er geld naar afwerking gaat.</p>
-      </div>
-      <div class="table-scroll">
-        <table>
-          <thead><tr><th>Risico</th><th>Waarom hier</th><th>Impact als het misgaat</th><th>Check</th></tr></thead>
-          <tbody id="risicos-body"></tbody>
-        </table>
-      </div>
-      <div class="note warn" id="risico-vuistregel" style="margin-top:16px;"></div>
-    </div>
+  <section class="section" style="padding-top:0;">
+    <h3 style="font-size:1rem;margin-bottom:12px;">Komende werkzaamheden</h3>
+    <div id="upcoming-tasks"><div class="loading-state">Laden…</div></div>
   </section>
-
-  <section class="section" id="oplevering">
-    <div class="wrap">
-      <div class="section-head">
-        <div class="eyebrow">Afronding</div>
-        <h2>Oplevering en dossier</h2>
-      </div>
-      <div class="two-col">
-        <div class="card check-card">
-          <h3>Technisch</h3>
-          <ul class="action-list" id="oplevering-technisch"></ul>
-        </div>
-        <div class="card check-card">
-          <h3>Dossier voor subsidie en label</h3>
-          <ul class="action-list" id="oplevering-dossier"></ul>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <section class="section" id="buiten-scope">
-    <div class="wrap">
-      <div class="section-head">
-        <div class="eyebrow">Niet in dit project</div>
-        <h2>Buiten scope</h2>
-        <p>Het geld hoeft niet naar deze onderdelen: al vernieuwd, of bewust buiten scope gehouden.</p>
-      </div>
-      <div class="done-grid" id="done-grid"></div>
-    </div>
-  </section>
-
 </main>
 
 <footer>
-  <div class="wrap">
-    Verbouwplan Leliestraat 27 · werkdocument · <span id="year"></span>
-  </div>
+  <div class="wrap">Verbouwplan Leliestraat 27 · werkdocument · <span id="year"></span></div>
 </footer>
 
-<div class="overlay" id="room-overlay">
-  <div class="overlay-panel" id="overlay-content"></div>
-</div>
-
-<script src="js/data.js?v=1"></script>
-<script src="js/app.js?v=1"></script>
-<script>
-  // Verduurzaming-flow hergebruikt de mermaid-tekst uit het plan in een simpele stappenrij
-  document.getElementById("fase-flow-duurzaam").innerHTML = [
-    "Kruipruimte en spouw laten onderzoeken",
-    "Vloer- of bodemisolatie",
-    "Vliering- of dakisolatie",
-    "Kierdichting plus ventilatie",
-    "Nieuw energielabel laten opnemen"
-  ].map((f, i) => (i > 0 ? '<span class="flow-arrow">→</span>' : '') + `<div class="flow-step">${f}</div>`).join("");
-</script>
+<script type="module" src="js/pages/dashboard.js"></script>
 </body>
 </html>
