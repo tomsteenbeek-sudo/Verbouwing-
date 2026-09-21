@@ -2,7 +2,7 @@
 // swipe op mobiel, en pinch/scroll/drag om in te zoomen en te pannen.
 // Gebruikt voor kamerfoto's (js/pages/kamers.js) en plattegronden
 // (js/pages/plattegronden.js).
-import { escapeHtml } from "./ui.js?v=1";
+import { escapeHtml } from "./ui.js?v=2";
 
 let state = null;
 

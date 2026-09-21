@@ -1,8 +1,8 @@
 // Gedeelde werkzaamheid-kaart en -formulier, gebruikt door Kamers en Planning.
 // Eén databronrecord (tasks-tabel) wordt hier gerenderd; wijzig je het op de ene
 // pagina, dan is het overal bijgewerkt omdat beide pagina's dezelfde rij ophalen.
-import { Tasks } from "./db.js?v=1";
-import { openModal, closeModal, optionsHtml, checkboxListHtml, peopleBadgesHtml, toast, reportError, confirmDialog, escapeHtml } from "./ui.js?v=1";
+import { Tasks } from "./db.js?v=2";
+import { openModal, closeModal, optionsHtml, checkboxListHtml, peopleBadgesHtml, toast, reportError, confirmDialog, escapeHtml } from "./ui.js?v=2";
 
 export const TASK_CATEGORIES = ["Sloop", "Elektra", "Isolatie", "Herstel", "Schilderwerk", "Vloer", "Afwerking", "Trap", "Installatie", "Interieur", "Buiten", "Tuin", "Controle", "Timmerwerk", "Administratie"];
 export const TASK_STATUSES = ["Nog in te plannen", "Te doen", "Bezig", "Gereed"];
