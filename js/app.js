@@ -87,13 +87,6 @@ function renderProfile() {
   ).join("");
 }
 
-/* ---------- Correcties ---------- */
-function renderCorrecties() {
-  document.getElementById("correcties-list").innerHTML = CORRECTIES.map(c =>
-    `<div class="corr-item"><h4>${c.titel}</h4><p>${c.tekst}</p></div>`
-  ).join("");
-}
-
 /* ---------- Rooms grid ---------- */
 let currentFilter = "alle";
 
@@ -356,7 +349,6 @@ document.getElementById("reset-progress")?.addEventListener("click", () => {
 function renderAll() {
   renderHero();
   renderProfile();
-  renderCorrecties();
   renderRoomGrid();
   renderISDE();
   renderOnderzoek();
