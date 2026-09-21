@@ -8,5 +8,6 @@ Zodra het bestand hier staat, verschijnt het automatisch op de website onder
 | --- | --- |
 | begane-grond.jpg | Begane grond |
 | verdieping.jpg | Verdieping |
+| zolder.jpg | Zolder |
 
 Zolang een bestand ontbreekt, toont de kaart een neutrale placeholder ("plattegrond volgt").

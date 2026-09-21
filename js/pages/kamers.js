@@ -30,6 +30,30 @@ function wireExtraGallery(container, slug, alt) {
   }
 }
 
+const MAX_MOODBOARD_PHOTOS = 4;
+
+function preloadImage(src) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => resolve(src);
+    img.onerror = () => resolve(null);
+    img.src = src;
+  });
+}
+
+// Sfeerbeelden ("hoe het moet worden"): images/rooms/<slug>-moodboard-1.jpg t/m -4.jpg.
+// De hele sectie (incl. kop) blijft verborgen als er geen enkel bestand bestaat.
+async function wireMoodboard(wrapEl, galleryEl, slug, alt) {
+  const candidates = [];
+  for (let n = 1; n <= MAX_MOODBOARD_PHOTOS; n++) {
+    candidates.push(`images/rooms/${slug}-moodboard-${n}.jpg`);
+  }
+  const found = (await Promise.all(candidates.map(preloadImage))).filter(Boolean);
+  if (!found.length) { wrapEl.style.display = "none"; return; }
+  galleryEl.innerHTML = found.map((src) => `<img src="${src}" alt="Sfeerbeeld ${alt}" loading="lazy">`).join("");
+  wrapEl.style.display = "";
+}
+
 async function loadAll() {
   [ROOMS, WORKDAYS, PEOPLE, TASKS, MATERIALS] = await Promise.all([
     Rooms.list(), Workdays.list(), People.list(), Tasks.list(), Materials.list(),
@@ -110,6 +134,11 @@ function renderDetail(slug) {
       <div class="compare-col wordt"><div class="lbl">Wordt</div><p>${escapeHtml(room.target_state || "")}</p></div>
     </div>
 
+    <div id="room-moodboard" style="display:none;">
+      <h3 style="font-size:1rem;margin:24px 0 10px;">Hoe het moet worden</h3>
+      <div class="room-extra-gallery" id="room-moodboard-gallery"></div>
+    </div>
+
     <div style="display:flex;justify-content:space-between;align-items:center;margin:24px 0 10px;">
       <h3 style="margin:0;font-size:1rem;">Werkzaamheden</h3>
       <button class="btn-primary" id="add-task-btn">+ Werkzaamheid</button>
@@ -123,6 +152,7 @@ function renderDetail(slug) {
   `;
 
   wireExtraGallery(document.getElementById("room-extra-gallery"), room.slug, room.name);
+  wireMoodboard(document.getElementById("room-moodboard"), document.getElementById("room-moodboard-gallery"), room.slug, room.name);
 
   const ctx = { rooms: ROOMS, workdays: WORKDAYS, people: PEOPLE, onChange: render };
   wireTaskCards(document.getElementById("task-list"), tasks, ctx);
