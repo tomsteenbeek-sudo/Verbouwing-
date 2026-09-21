@@ -291,18 +291,6 @@ h1, h2, h3, h4 { font-family: var(--font-display); font-weight: 600; line-height
   font-size: 1.1rem; cursor: pointer; display: flex; align-items: center; justify-content: center;
 }
 .overlay-body { padding: 24px 26px 30px; }
-.room-extra-gallery {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-  gap: 8px;
-}
-.room-extra-gallery img {
-  width: 100%;
-  aspect-ratio: 4 / 3;
-  object-fit: cover;
-  border-radius: var(--radius);
-  border: 1px solid var(--border);
-}
 .overlay-body .room-floor { margin-bottom: 4px; }
 .overlay-body h2 { font-size: 1.4rem; margin-bottom: 14px; }
 .compare { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 20px; }
@@ -642,7 +630,97 @@ footer { font-family: var(--font-ui); }
 .material-item .name { font-weight: 600; }
 .material-item .meta { color: var(--text-muted); font-size: 0.78rem; margin-top: 2px; }
 
+/* ---------- Personen-badges (meerdere personen per werkzaamheid/actie) ---------- */
+.people-badges { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
+.people-badges.empty { color: var(--text-muted); font-size: 0.78rem; font-family: var(--font-ui); }
+.person-badge {
+  font-family: var(--font-ui); font-size: 0.72rem; font-weight: 600;
+  background: var(--accent-soft); color: var(--accent-strong);
+  border-radius: 999px; padding: 3px 9px;
+}
+
+/* ---------- Aanvinklijst (multi-select in formulieren) ---------- */
+.checkbox-list {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 6px 12px;
+  max-height: 220px; overflow-y: auto; padding: 10px 12px; border: 1px solid var(--border);
+  border-radius: var(--radius-sm); background: var(--surface-alt);
+}
+.checkbox-list-item { display: flex; align-items: center; gap: 7px; font-size: 0.86rem; }
+.checkbox-list-item input { accent-color: var(--accent); width: 16px; height: 16px; flex-shrink: 0; }
+
+/* ---------- Bulkselectiebalk ---------- */
+.bulk-bar {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 40;
+  transform: translateY(100%); transition: transform 0.18s ease;
+}
+.bulk-bar.open { transform: translateY(0); }
+.bulk-bar-inner {
+  max-width: var(--maxw); margin: 0 auto; display: flex; flex-wrap: wrap; align-items: center; gap: 12px;
+  background: var(--accent-strong); color: var(--accent-contrast); padding: 12px 20px;
+  box-shadow: 0 -6px 20px -10px rgba(0,0,0,0.4);
+}
+.bulk-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.bulk-actions select {
+  font-family: var(--font-ui); font-size: 0.82rem; border: 1px solid transparent; border-radius: var(--radius-sm);
+  padding: 6px 10px; background: rgba(255,255,255,0.15); color: inherit;
+}
+.bulk-actions select option { color: var(--text); }
+
+/* ---------- Sleepbaar herordenen ---------- */
+.drag-handle { cursor: grab; touch-action: none; color: var(--text-muted); font-size: 1.1rem; padding: 0 2px; flex-shrink: 0; }
+.task-card.sortable-ghost { opacity: 0.4; }
+.order-nr { color: var(--text-muted); font-weight: 700; }
+
+/* ---------- Klusdag: aanwezig, materialen/gereedschap-per-dag ---------- */
+.workday-present { font-size: 0.82rem; color: var(--text-muted); margin-top: 4px; }
+.workday-present strong { color: var(--text); }
+.day-subhead { font-size: 0.86rem; margin: 18px 0 8px; }
+.tools-by-person { display: flex; flex-wrap: wrap; gap: 18px; }
+.tools-by-person-group { font-size: 0.86rem; }
+.tools-by-person-group strong { display: block; margin-bottom: 4px; }
+
+/* ---------- Kamerafbeeldingen (gewenst/huidig) ---------- */
+.room-image-gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; margin-bottom: 12px; }
+.room-image-tile { position: relative; border-radius: var(--radius-sm); overflow: hidden; border: 1px solid var(--border); cursor: pointer; }
+.room-image-tile img { display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: cover; }
+.room-image-tile-actions {
+  position: absolute; top: 6px; right: 6px; display: flex; gap: 4px;
+  opacity: 0; transition: opacity 0.15s ease;
+}
+.room-image-tile:hover .room-image-tile-actions, .room-image-tile:focus-within .room-image-tile-actions { opacity: 1; }
+.room-image-tile-actions button {
+  width: 28px; height: 28px; border-radius: 50%; border: none; background: rgba(20,17,12,0.6); color: #fff;
+  cursor: pointer; font-size: 0.9rem; display: flex; align-items: center; justify-content: center;
+}
+
+/* ---------- Lightbox (kamerfoto's + plattegronden) ---------- */
+.lightbox-overlay {
+  display: none; position: fixed; inset: 0; z-index: 100; background: rgba(15,12,8,0.92);
+  align-items: center; justify-content: center; flex-direction: column;
+}
+.lightbox-overlay.open { display: flex; }
+.lightbox-stage { flex: 1; width: 100%; display: flex; align-items: center; justify-content: center; overflow: hidden; touch-action: none; }
+.lightbox-img { max-width: 92vw; max-height: 80vh; object-fit: contain; touch-action: none; user-select: none; transition: transform 0.05s linear; cursor: grab; }
+.lightbox-close, .lightbox-nav {
+  position: absolute; background: rgba(255,255,255,0.12); color: #fff; border: none; border-radius: 50%;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+}
+.lightbox-close { top: 16px; right: 16px; width: 40px; height: 40px; font-size: 1.1rem; z-index: 2; }
+.lightbox-nav { top: 50%; transform: translateY(-50%); width: 48px; height: 48px; font-size: 1.6rem; z-index: 2; }
+.lightbox-prev { left: 16px; }
+.lightbox-next { right: 16px; }
+.lightbox-foot { color: #fff; font-family: var(--font-ui); font-size: 0.82rem; padding: 10px 0 18px; display: flex; gap: 12px; align-items: center; }
+.lightbox-counter { color: rgba(255,255,255,0.6); }
+
+/* ---------- Plattegronden: klikbaar ---------- */
+.floorplan-card { cursor: pointer; }
+.floorplan-card.no-image { cursor: default; }
+
+/* ---------- Personen: klikbare rij ---------- */
+.person-open-link { cursor: pointer; }
+
 @media (max-width: 760px) {
   .form-grid { grid-template-columns: 1fr; }
   .modal-panel { padding: 18px; }
+  .lightbox-nav { width: 40px; height: 40px; font-size: 1.3rem; }
 }

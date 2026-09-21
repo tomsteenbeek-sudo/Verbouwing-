@@ -1,14 +1,15 @@
-import { Tools, TaskTools } from "../db.js";
-import { renderNav, escapeHtml, reportError, toast, openModal, closeModal, confirmDialog } from "../ui.js";
+import { Tools, TaskTools, People } from "../db.js";
+import { renderNav, escapeHtml, reportError, toast, openModal, closeModal, confirmDialog, optionsHtml } from "../ui.js";
 
 renderNav();
 document.getElementById("year").textContent = new Date().getFullYear();
 
 let TOOLS = [];
 let TASK_TOOLS = [];
+let PEOPLE = [];
 
 async function loadAll() {
-  [TOOLS, TASK_TOOLS] = await Promise.all([Tools.list(), TaskTools.listAll()]);
+  [TOOLS, TASK_TOOLS, PEOPLE] = await Promise.all([Tools.list(), TaskTools.listAll(), People.list()]);
 }
 
 function tasksForTool(toolId) {
@@ -37,6 +38,7 @@ function toolRowHtml(t) {
         <div class="actie-meta">
           <span class="meta-item">${escapeHtml(t.category || "Algemeen")}</span>
           ${t.acquire_method ? `<span class="meta-item">${escapeHtml(t.acquire_method)}</span>` : ""}
+          <span class="meta-item">👤 ${escapeHtml(t.people?.name || "Niet toegewezen")}</span>
         </div>
         ${linkedTasks.length ? `<div class="actie-note">Nodig voor: ${linkedTasks.map(escapeHtml).join(", ")}</div>` : ""}
         <div class="task-card-actions" style="margin-top:8px;">
@@ -71,7 +73,7 @@ function wireRows() {
 }
 
 function openToolForm(tool) {
-  const t = tool || { name: "", category: "", have_it: false, acquire_method: "", quantity: "", notes: "" };
+  const t = tool || { name: "", category: "", have_it: false, acquire_method: "", quantity: "", notes: "", responsible_person_id: "" };
   const overlay = openModal(tool ? "Gereedschap bewerken" : "Nieuw gereedschap", `
     <form id="tool-form">
       <div class="form-field full"><label>Naam</label><input type="text" name="name" required value="${escapeHtml(t.name)}"></div>
@@ -86,6 +88,7 @@ function openToolForm(tool) {
             <option value="Huren" ${t.acquire_method === "Huren" ? "selected" : ""}>Huren</option>
           </select>
         </div>
+        <div class="form-field"><label>Verantwoordelijk</label><select name="responsible_person_id">${optionsHtml(PEOPLE, t.responsible_person_id, { empty: "Niet toegewezen" })}</select></div>
         <div class="form-field"><label>Heb ik al</label><div class="checkbox-field"><input type="checkbox" name="have_it" ${t.have_it ? "checked" : ""}><span>Ja</span></div></div>
       </div>
       <div class="form-field full"><label>Opmerkingen</label><textarea name="notes">${escapeHtml(t.notes || "")}</textarea></div>
@@ -112,6 +115,7 @@ function openToolForm(tool) {
       category: fd.get("category") || null,
       quantity: fd.get("quantity") || null,
       acquire_method: fd.get("acquire_method") || null,
+      responsible_person_id: fd.get("responsible_person_id") || null,
       have_it: fd.get("have_it") === "on",
       notes: fd.get("notes") || null,
     };

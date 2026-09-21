@@ -1,41 +1,32 @@
-# Ontwerpafbeeldingen per kamer
+# Kamerafbeeldingen
 
-Plaats hier een afbeelding per kamer met exact deze bestandsnaam (jpg). Zodra het
-bestand hier staat, verschijnt het automatisch op de kamerkaart en in de
-kamerdetail op de website — er hoeft niets aangepast te worden in de code.
+Sinds de migratie `supabase/migration_002_people_media_sortorder.sql` staan
+kamerafbeeldingen niet meer als bestandsnaam-conventie, maar als rijen in de
+databasetabel `room_images` (`room_id`, `image_url`, `type`, `caption`,
+`is_cover`, `sort_order`). De bestanden in deze map blijven gewoon bestaan —
+`image_url` wijst er gewoon naartoe (bv. `images/rooms/woonkamer.jpg`) — maar
+welke foto bij welke kamer hoort, en of het een "gewenste" of "huidige" foto
+is, staat nu in de database.
 
-| Bestandsnaam | Kamer |
-| --- | --- |
-| entree-en-gang.jpg | Entree en gang |
-| woonkamer.jpg | Woonkamer |
-| keuken.jpg | Keuken |
-| tweede-hal-en-bijkeuken.jpg | Tweede hal en bijkeuken |
-| toilet-beneden.jpg | Toilet beneden |
-| trap.jpg | Trap |
-| overloop.jpg | Overloop |
-| ouderslaapkamer.jpg | Ouderslaapkamer |
-| tweede-slaapkamer.jpg | Tweede slaapkamer |
-| badkamer-en-toilet-boven.jpg | Badkamer en toilet boven |
-| bergvliering.jpg | Bergvliering |
-| dakterras.jpg | Dakterras |
-| achtertuin.jpg | Achtertuin |
-| voortuin.jpg | Voortuin |
-| bergingen.jpg | Twee bergingen |
-| gevel-en-dak.jpg | Gevel en dak |
+## Een foto toevoegen
 
-Zolang een bestand ontbreekt, toont de kaart een neutrale placeholder ("afbeelding volgt").
+1. Zet het bestand in deze map.
+2. Voeg 'm toe via de site zelf: open de kamer op de Kamers-pagina en klik
+   op **+ Afbeelding** (kies Gewenste of Huidige situatie, vul het pad in,
+   bv. `images/rooms/woonkamer-2.jpg`).
 
-## Meerdere foto's per kamer
+Dat is alles — geen bestandsnaam-conventie meer nodig, en je kunt meteen ook
+een bijschrift meegeven en de foto als hoofdfoto (★) instellen.
 
-Heb je meer dan één foto van een kamer? Voeg extra bestanden toe met een volgnummer:
-`<slug>-2.jpg`, `<slug>-3.jpg`, `<slug>-4.jpg` (tot 4 foto's per kamer). Ze verschijnen
-automatisch als een fotostrip onder de hoofdfoto op de kamerdetailpagina — de
-kamerkaart in het overzicht blijft altijd de hoofdfoto (`<slug>.jpg`) tonen.
+## Gewenste vs. huidige situatie
 
-## Sfeerbeelden ("hoe het moet worden")
+- **Gewenste situatie** (`type = desired`): ontwerp/render/inspiratie voor hoe
+  de kamer moet worden. Staat bovenaan de kamerdetailpagina.
+- **Huidige situatie** (`type = current`): foto van de kamer zoals die nu is.
 
-Voor inspiratie-/moodboardfoto's (dus geen foto van de huidige staat, maar een
-voorbeeld van de gewenste sfeer) gebruik je `<slug>-moodboard-1.jpg` t/m
-`<slug>-moodboard-4.jpg`. Deze verschijnen in een aparte sectie "Hoe het moet
-worden" op de kamerdetailpagina, los van de gewone foto's — die sectie blijft
-onzichtbaar zolang er geen moodboard-bestand voor die kamer is.
+Standaard is de hoofdfoto (cover, op de kamerkaart in het overzicht) de eerste
+`desired`-foto als die er is, anders de eerste `current`-foto. Je kunt dit
+altijd overschrijven door een andere foto als hoofdfoto (★) aan te wijzen.
+
+Alle foto's zijn klikbaar en openen groot in een lightbox met vorige/volgende,
+swipe op mobiel en in-/uitzoomen.

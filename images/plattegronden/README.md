@@ -11,3 +11,7 @@ Zodra het bestand hier staat, verschijnt het automatisch op de website onder
 | zolder.jpg | Zolder |
 
 Zolang een bestand ontbreekt, toont de kaart een neutrale placeholder ("plattegrond volgt").
+
+Klik op een plattegrond op de website om 'm groot te openen: in- en uitzoomen
+(scrollwiel, pinch op mobiel), slepen/pannen als je ingezoomd bent, en sluiten
+met de X, Escape of door ernaast te klikken.

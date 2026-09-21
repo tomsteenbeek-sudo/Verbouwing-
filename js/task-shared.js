@@ -2,7 +2,7 @@
 // Eén databronrecord (tasks-tabel) wordt hier gerenderd; wijzig je het op de ene
 // pagina, dan is het overal bijgewerkt omdat beide pagina's dezelfde rij ophalen.
 import { Tasks } from "./db.js";
-import { openModal, closeModal, optionsHtml, toast, reportError, confirmDialog, escapeHtml } from "./ui.js";
+import { openModal, closeModal, optionsHtml, checkboxListHtml, peopleBadgesHtml, toast, reportError, confirmDialog, escapeHtml } from "./ui.js";
 
 export const TASK_CATEGORIES = ["Sloop", "Elektra", "Isolatie", "Herstel", "Schilderwerk", "Vloer", "Afwerking", "Trap", "Installatie", "Interieur", "Buiten", "Tuin", "Controle", "Timmerwerk", "Administratie"];
 export const TASK_STATUSES = ["Nog in te plannen", "Te doen", "Bezig", "Gereed"];
@@ -12,14 +12,16 @@ export function taskCardHtml(task, opts = {}) {
   const subParts = [];
   if (opts.showRoom !== false) subParts.push(task.rooms ? escapeHtml(task.rooms.name) : "Algemeen");
   if (opts.showWorkday !== false) subParts.push(task.workdays ? "Klusdag " + task.workdays.number : "Nog in te plannen");
-  subParts.push(task.people ? escapeHtml(task.people.name) : "Niet toegewezen");
   return `
     <div class="task-card ${isGereed ? "gereed" : ""}" data-id="${task.id}">
       <div class="task-card-head">
+        ${opts.sortable ? '<span class="drag-handle" title="Sleep om te herordenen">≡</span>' : ""}
+        ${opts.selectable ? '<input type="checkbox" class="task-select-cb" aria-label="Selecteren">' : ""}
         <input type="checkbox" class="task-done-cb" ${isGereed ? "checked" : ""} aria-label="Gereed">
         <div style="flex:1;min-width:0;">
-          <div class="title">${escapeHtml(task.title)}</div>
+          <div class="title">${opts.sortOrderLabel != null ? `<span class="order-nr">${opts.sortOrderLabel}.</span> ` : ""}${escapeHtml(task.title)}</div>
           <div class="sub">${subParts.join(" · ")}${task.is_external ? ' <span class="badge extern">Extern</span>' : ""}</div>
+          ${peopleBadgesHtml(task.people)}
         </div>
       </div>
       <div class="task-card-detail">
@@ -32,7 +34,7 @@ export function taskCardHtml(task, opts = {}) {
           <strong>Verplaats naar klusdag</strong>
           <select class="task-move-select">
             <option value="">Nog in te plannen</option>
-            ${opts.workdays.map((w) => `<option value="${w.id}" ${task.workday_id === w.id ? "selected" : ""}>Klusdag ${w.number} — ${escapeHtml(w.name)}</option>`).join("")}
+            ${opts.workdays.map((w) => `<option value="${w.id}" ${task.workday_id === w.id ? "selected" : ""}>Klusdag ${w.number}</option>`).join("")}
           </select>
         </div>` : ""}
         <div class="task-card-actions">
@@ -46,7 +48,7 @@ export function taskCardHtml(task, opts = {}) {
 export function wireTaskCards(container, tasksArray, ctx) {
   container.querySelectorAll(".task-card-head").forEach((head) => {
     head.addEventListener("click", (e) => {
-      if (e.target.closest(".task-done-cb")) return;
+      if (e.target.closest(".task-done-cb, .task-select-cb, .drag-handle")) return;
       head.closest(".task-card").classList.toggle("expanded");
     });
   });
@@ -94,16 +96,16 @@ export function wireTaskCards(container, tasksArray, ctx) {
 export function openTaskForm({ task, rooms, workdays, people, defaults = {} }, onSaved) {
   const t = task || {
     title: "", description: "", room_id: defaults.room_id || "", workday_id: defaults.workday_id || "",
-    person_id: "", category: "", status: "Nog in te plannen", dependency_note: "", notes: "", is_external: false,
+    category: "", status: "Nog in te plannen", dependency_note: "", notes: "", is_external: false,
   };
-  const workdayOptions = workdays.map((w) => ({ id: w.id, name: `Klusdag ${w.number} — ${w.name}` }));
+  const selectedPersonIds = (task ? task.people : []).map((p) => p.id);
+  const workdayOptions = workdays.map((w) => ({ id: w.id, name: `Klusdag ${w.number}` }));
   const overlay = openModal(task ? "Werkzaamheid bewerken" : "Nieuwe werkzaamheid", `
     <form id="task-form">
       <div class="form-field full"><label>Titel</label><input type="text" name="title" required value="${escapeHtml(t.title)}"></div>
       <div class="form-grid">
         <div class="form-field"><label>Kamer</label><select name="room_id">${optionsHtml(rooms, t.room_id, { empty: "Algemeen / geen kamer" })}</select></div>
         <div class="form-field"><label>Klusdag</label><select name="workday_id">${optionsHtml(workdayOptions, t.workday_id, { empty: "Nog in te plannen" })}</select></div>
-        <div class="form-field"><label>Toegewezen aan</label><select name="person_id">${optionsHtml(people, t.person_id, { empty: "Nog niet toegewezen" })}</select></div>
         <div class="form-field"><label>Categorie</label>
           <select name="category">
             <option value="" ${!t.category ? "selected" : ""}>Overig</option>
@@ -115,6 +117,7 @@ export function openTaskForm({ task, rooms, workdays, people, defaults = {} }, o
         </div>
         <div class="form-field"><label>Uitvoering</label><div class="checkbox-field"><input type="checkbox" name="is_external" ${t.is_external ? "checked" : ""}><span>Extern (bv. elektricien, vloerlegger)</span></div></div>
       </div>
+      <div class="form-field full"><label>Toegewezen aan</label>${checkboxListHtml(people, selectedPersonIds, "person_ids")}</div>
       <div class="form-field full"><label>Omschrijving</label><textarea name="description">${escapeHtml(t.description || "")}</textarea></div>
       <div class="form-field full"><label>Afhankelijkheid (optioneel)</label><input type="text" name="dependency_note" value="${escapeHtml(t.dependency_note || "")}" placeholder="bv. moet drogen vóór volgende stap"></div>
       <div class="form-field full"><label>Opmerkingen</label><textarea name="notes">${escapeHtml(t.notes || "")}</textarea></div>
@@ -141,7 +144,6 @@ export function openTaskForm({ task, rooms, workdays, people, defaults = {} }, o
       title: fd.get("title").trim(),
       room_id: fd.get("room_id") || null,
       workday_id: fd.get("workday_id") || null,
-      person_id: fd.get("person_id") || null,
       category: fd.get("category") || null,
       status: fd.get("status"),
       is_external: fd.get("is_external") === "on",
@@ -149,9 +151,10 @@ export function openTaskForm({ task, rooms, workdays, people, defaults = {} }, o
       dependency_note: fd.get("dependency_note") || null,
       notes: fd.get("notes") || null,
     };
+    const personIds = fd.getAll("person_ids");
     try {
-      if (task) await Tasks.update(task.id, patch);
-      else await Tasks.create(patch);
+      const saved = task ? await Tasks.update(task.id, patch) : await Tasks.create(patch);
+      await Tasks.setPersons(saved.id, personIds);
       toast("Werkzaamheid opgeslagen.");
       closeModal();
       onSaved();
