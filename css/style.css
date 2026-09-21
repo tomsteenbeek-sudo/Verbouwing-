@@ -291,6 +291,18 @@ h1, h2, h3, h4 { font-family: var(--font-display); font-weight: 600; line-height
   font-size: 1.1rem; cursor: pointer; display: flex; align-items: center; justify-content: center;
 }
 .overlay-body { padding: 24px 26px 30px; }
+.room-extra-gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 8px;
+}
+.room-extra-gallery img {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+}
 .overlay-body .room-floor { margin-bottom: 4px; }
 .overlay-body h2 { font-size: 1.4rem; margin-bottom: 14px; }
 .compare { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 20px; }
