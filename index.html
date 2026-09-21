@@ -18,10 +18,12 @@
     <div class="nav-links">
       <a href="#overzicht">Overzicht</a>
       <a href="#kamers">Kamers</a>
+      <a href="#plattegronden">Plattegronden</a>
       <a href="#verduurzaming">Verduurzaming</a>
       <a href="#budget">Budget</a>
       <a href="#planning">Planning</a>
       <a href="#besluiten">Besluiten</a>
+      <a href="#gereedschap">Gereedschap</a>
       <a href="#acties">Actielijst</a>
       <a href="#risicos">Risico's</a>
       <a href="#oplevering">Oplevering</a>
@@ -62,10 +64,21 @@
       <p class="source-note" id="source-note"></p>
 
       <div style="margin-top:36px;">
-        <h3 style="font-size:1.05rem;">Al gedaan — blijft buiten scope</h3>
-        <p style="color:var(--text-muted);font-size:0.9rem;margin-top:-6px;">Het geld hoeft niet naar deze onderdelen. De opgave zit in de schil, de installaties, de afwerking en de delen die in het oude plan ontbraken.</p>
+        <h3 style="font-size:1.05rem;">Buiten scope</h3>
+        <p style="color:var(--text-muted);font-size:0.9rem;margin-top:-6px;">Het geld hoeft niet naar deze onderdelen: al vernieuwd, of bewust buiten scope gehouden.</p>
         <div class="done-grid" id="done-grid"></div>
       </div>
+    </div>
+  </section>
+
+  <section class="section" id="plattegronden">
+    <div class="wrap">
+      <div class="section-head">
+        <div class="eyebrow">Huis</div>
+        <h2>Plattegronden</h2>
+        <p>Plaats een afbeelding per verdieping op <code>images/plattegronden/</code> — die verschijnt hier automatisch.</p>
+      </div>
+      <div class="floorplan-grid" id="floorplan-grid"></div>
     </div>
   </section>
 
@@ -172,9 +185,10 @@
       <ol class="rule-list" id="harde-volgorde" style="margin-bottom:30px;"></ol>
 
       <h3 style="font-size:0.98rem;">Indicatieve planning</h3>
+      <p style="color:var(--text-muted);font-size:0.85rem;margin-top:-6px;">Vul zelf een datum per fase in — die wordt lokaal onthouden.</p>
       <div class="table-scroll">
         <table>
-          <thead><tr><th>Periode</th><th>Werk</th><th>Afhankelijk van</th></tr></thead>
+          <thead><tr><th>Periode</th><th>Werk</th><th>Afhankelijk van</th><th>Datum</th></tr></thead>
           <tbody id="planning-body"></tbody>
         </table>
       </div>
@@ -212,6 +226,7 @@
         </div>
         <div>
           <h3 style="font-size:0.98rem;">Acties</h3>
+          <p style="color:var(--text-muted);font-size:0.85rem;margin-top:-6px;">Wijs een persoon toe en plan een datum — wordt lokaal onthouden.</p>
           <div class="table-scroll">
             <table>
               <thead><tr><th>Actie</th><th>Wie</th><th>Wanneer</th><th>Status</th></tr></thead>
@@ -223,12 +238,29 @@
     </div>
   </section>
 
+  <section class="section" id="gereedschap">
+    <div class="wrap">
+      <div class="section-head">
+        <div class="eyebrow">Voorbereiding</div>
+        <h2>Gereedschap</h2>
+        <p>Een startlijst voor het zelf-werk (schilderen, klein timmerwerk, sloop). Vink af wat je al hebt, en voeg zelf toe wat ontbreekt.</p>
+      </div>
+      <div class="card check-card">
+        <ul class="action-list" id="tools-list"></ul>
+        <form id="add-tool-form" class="add-row">
+          <input type="text" id="add-tool-input" placeholder="Gereedschap toevoegen…">
+          <button type="submit">Toevoegen</button>
+        </form>
+      </div>
+    </div>
+  </section>
+
   <section class="section" id="risicos">
     <div class="wrap">
       <div class="section-head">
         <div class="eyebrow">Vóór start</div>
         <h2>Risico's</h2>
-        <p>Zes dingen die, als ze tegenvallen, het hele plan omgooien. Allemaal te checken in week één, voordat er geld naar afwerking gaat.</p>
+        <p>Twee dingen die, als ze tegenvallen, het hele plan omgooien. Allemaal te checken in week één, voordat er geld naar afwerking gaat.</p>
       </div>
       <div class="table-scroll">
         <table>
@@ -278,7 +310,7 @@
   document.getElementById("fase-flow-duurzaam").innerHTML = [
     "Kruipruimte en spouw laten onderzoeken",
     "Vloer- of bodemisolatie",
-    "Vlieringvloer isoleren",
+    "Vliering- of dakisolatie",
     "Kierdichting plus ventilatie",
     "Nieuw energielabel laten opnemen"
   ].map((f, i) => (i > 0 ? '<span class="flow-arrow">→</span>' : '') + `<div class="flow-step">${f}</div>`).join("");
