@@ -27,12 +27,14 @@ const PROPERTY = {
   bron: { tekst: "Funda-advertentie Leliestraat 27", url: "https://www.funda.nl/detail/koop/alphen-aan-den-rijn/huis-leliestraat-27/44443712/" }
 };
 
-const AL_GEDAAN = [
+const BUITEN_SCOPE = [
   { naam: "Badkamer (2023)", omschrijving: "Inloopdouche, wastafelmeubel, vloerverwarming. Niet aanraken." },
   { naam: "Toilet boven", omschrijving: "Luxe afgewerkt, vloerverwarming. Niet aanraken." },
   { naam: "Keuken", omschrijving: "Vernieuwd, wit blad, houtlook fronten, inductie, afzuigkap, oven, vaatwasser. Blijft staan." },
   { naam: "CV-ketel (2020)", omschrijving: "Nog ruim 10 jaar te gaan, eigendom." },
-  { naam: "HR++ glas", omschrijving: "Grotendeels aanwezig. Alleen restposten inventariseren, geen budgetpost van betekenis." }
+  { naam: "HR++ glas", omschrijving: "Grotendeels aanwezig. Alleen restposten inventariseren, geen budgetpost van betekenis." },
+  { naam: "WC beneden", omschrijving: "Blijft zoals het is. Valt buiten de scope van deze verbouwing." },
+  { naam: "Bergingen", omschrijving: "Blijven zoals ze zijn. Vallen buiten de scope van deze verbouwing." }
 ];
 
 /* verdieping: "begane-grond" | "verdieping" | "buiten" */
@@ -110,8 +112,9 @@ const ROOMS = [
     slug: "toilet-beneden",
     naam: "Toilet beneden",
     verdieping: "begane-grond",
-    nu: "Staat onbekend — nog te beoordelen of dit ook in 2023 is meegenomen.",
-    wordt: "Functioneel en met goede ventilatie; alleen apart budget als het echt gedateerd blijkt.",
+    nu: "Functioneel, staat verder niet beoordeeld.",
+    wordt: "Blijft zoals het is — buiten scope van deze verbouwing.",
+    klaar: true,
     acties: [
       "Staat beoordelen: is dit ook in 2023 meegenomen of nog het oude?",
       "Ventilatie controleren",
@@ -200,7 +203,7 @@ const ROOMS = [
     naam: "Bergvliering",
     verdieping: "verdieping",
     nu: "Onbenutte vliering, toegankelijkheid en vloer nog te beoordelen.",
-    wordt: "Besloten: blijft opslag. Veilige vlieringtrap, verlichting en een stopcontact.",
+    wordt: "Nog te bepalen: alleen opslag of ooit meer — dat bepaalt vliering- of dakisolatie. Veilige vlieringtrap, verlichting en een stopcontact.",
     acties: [
       "Vlieringtrap maken of vervangen, veilig en stevig",
       "Asbestcheck vóór je er iets gaat slopen of isoleren",
@@ -257,8 +260,9 @@ const ROOMS = [
     slug: "bergingen",
     naam: "Twee bergingen",
     verdieping: "buiten",
-    nu: "Aangebouwde stenen bergingen met elektra, staat nog te beoordelen.",
-    wordt: "Eén berging voor fietsen, één voor gereedschap en opslag, met werkende verlichting.",
+    nu: "Aangebouwde stenen bergingen met elektra.",
+    wordt: "Blijven zoals ze zijn — buiten scope van deze verbouwing.",
+    klaar: true,
     acties: [
       "Staat beoordelen: dak, deur, vocht",
       "Elektra nalopen, er ligt al stroom",
@@ -326,7 +330,7 @@ const BUDGET = {
   verduurzaming: {
     rows: [
       { post: "Bodem- of vloerisolatie kruipruimte (ca. 37 m²)", bedrag: 2200, uitvoering: "Uitbesteed, verplicht voor ISDE" },
-      { post: "Vlieringvloerisolatie (ca. 30 m²)", bedrag: 1200, uitvoering: "Uitbesteed" },
+      { post: "Vliering- of dakisolatie (ca. 30 m²)", bedrag: 1200, uitvoering: "Uitbesteed — pas definitief na keuze opslag/bewoonbaar" },
       { post: "Ventilatie op orde brengen", bedrag: 1500, uitvoering: "Uitbesteed" },
       { post: "Kierdichting", bedrag: 600, uitvoering: "Uitbesteed" },
       { post: "Restant enkel glas vervangen", bedrag: 700, uitvoering: "Uitbesteed" },
@@ -393,7 +397,7 @@ const UITVOERING = {
 };
 
 const BESLUITEN = [
-  { besluit: "Vliering: alleen opslag of ooit bewoonbaar", toelichting: "Besloten: alleen opslag, dus vlieringvloerisolatie", status: "Gedaan" },
+  { besluit: "Vliering: alleen opslag of ooit bewoonbaar", toelichting: "Bepaalt of het vliering- of dakisolatie wordt — nog niet definitief", status: "Vóór isolatie-offerte" },
   { besluit: "Gevelisolatie doen of niet, na het spouwonderzoek", toelichting: "Bepaalt of binnenwerk opnieuw op de schop moet", status: "Vóór schilderwerk" },
   { besluit: "Schilderwerk zelf doen of uitbesteden", toelichting: "Besloten: zelf doen, binnen en buiten", status: "Gedaan" },
   { besluit: "Airco nu voorbereiden of niet", toelichting: "Leidingen en doorvoeren moeten vóór de afwerking", status: "Vóór elektra" },
@@ -446,12 +450,8 @@ const ACTIES = [
 ];
 
 const RISICOS = [
-  { risico: "Fundering", waarom: "Alphen ligt op slappe bodem; vooroorlogse woningen staan vaak op houten palen", impact: "Tienduizenden euro's, en al het afwerkwerk is weggegooid", check: "Gemeentedossier, scheurbeeld, eventueel funderingsonderzoek" },
   { risico: "Geen spouw", waarom: "Bouwjaar 1929", impact: "Gevelisolatiebudget klopt niet, plan moet om", check: "Endoscopisch onderzoek" },
-  { risico: "Natte of lage kruipruimte", waarom: "Hoge grondwaterstand in de regio", impact: "Vloerisolatie kan niet, of alleen met bodemfolie erbij", check: "Inspectie met foto's" },
-  { risico: "Asbest", waarom: "1929 plus latere verbouwingen; vaak in vlieringvloer, rookkanaal of achterbouw", impact: "Werk stilgelegd, gecertificeerde sanering nodig", check: "Inventarisatie vóór sloop" },
-  { risico: "Verouderde groepenkast of bedrading", waarom: "Bouwjaar en het aantal apparaten dat je erop wilt zetten", impact: "Elektra-budget verdubbelt", check: "Beoordeling door elektricien" },
-  { risico: "Dak en loodwerk", waarom: "Pannendak van bijna honderd jaar, plus de aansluiting op het dakterras", impact: "Isoleren onder een lekkend dak is weggegooid geld", check: "Dakinspectie" }
+  { risico: "Natte of lage kruipruimte", waarom: "Hoge grondwaterstand in de regio", impact: "Vloerisolatie kan niet, of alleen met bodemfolie erbij", check: "Inspectie met foto's" }
 ];
 
 const OPLEVERING = {
@@ -480,4 +480,33 @@ const OPLEVERING = {
   ]
 };
 
-const RISICO_VUISTREGEL = "De vuistregel: niets afwerken voordat deze zes zijn afgevinkt. Verf en vloer zijn het goedkoopst om nu uit te stellen en het duurst om later opnieuw te doen.";
+const RISICO_VUISTREGEL = "De vuistregel: niets afwerken voordat deze twee zijn afgevinkt. Verf en vloer zijn het goedkoopst om nu uit te stellen en het duurst om later opnieuw te doen.";
+
+const TOOLS = [
+  "Kwasten en rollers (diverse maten)",
+  "Verfbakken en afplaktape",
+  "Schuurmachine en schuurpapier",
+  "Verfkrabber en plamuurmes",
+  "Accuboormachine",
+  "Slagboormachine (voor steen/beton)",
+  "Schroevendraaierset",
+  "Waterpas",
+  "Rolmaat",
+  "Hamer",
+  "Figuurzaag of handzaag",
+  "Ladder (trap- en rechte ladder)",
+  "Bouwstofzuiger",
+  "Kruiwagen of bouwemmers",
+  "Afvalzakken en stofzeilen",
+  "Werkhandschoenen en veiligheidsbril",
+  "Stofmaskers (FFP2)",
+  "Kitpistool",
+  "Nietpistool (tacker)",
+  "Verlengsnoer en bouwlamp"
+];
+
+/* Plattegronden: plaats een afbeelding op images/plattegronden/<slug>.jpg */
+const FLOORPLANS = [
+  { slug: "begane-grond", naam: "Begane grond" },
+  { slug: "verdieping", naam: "Verdieping" }
+];
