@@ -1,6 +1,6 @@
-import { People, Tasks, Actions, Workdays, Tools } from "../db.js";
-import { renderNav, escapeHtml, reportError, toast, openModal, closeModal, confirmDialog, statusPillClass } from "../ui.js";
-import { decorateWorkdays, formatDate } from "../domain.js";
+import { People, Tasks, Actions, Workdays, Tools } from "../db.js?v=1";
+import { renderNav, escapeHtml, reportError, toast, openModal, closeModal, confirmDialog, statusPillClass } from "../ui.js?v=1";
+import { decorateWorkdays, formatDate } from "../domain.js?v=1";
 
 renderNav();
 document.getElementById("year").textContent = new Date().getFullYear();

@@ -1,6 +1,6 @@
-import { Workdays, Tasks, Actions, Materials, TaskMaterials } from "../db.js";
-import { renderNav, escapeHtml, reportError } from "../ui.js";
-import { decorateWorkdays, nextUpcomingWorkday, prerequisiteWarning, formatDate } from "../domain.js";
+import { Workdays, Tasks, Actions, Materials, TaskMaterials } from "../db.js?v=1";
+import { renderNav, escapeHtml, reportError } from "../ui.js?v=1";
+import { decorateWorkdays, nextUpcomingWorkday, prerequisiteWarning, formatDate } from "../domain.js?v=1";
 
 renderNav();
 document.getElementById("year").textContent = new Date().getFullYear();
