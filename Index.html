@@ -1,1 +1,79 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Verbouwplan Leliestraat 27</title>
+<meta name="description" content="Verbouwplan per kamer: huidige staat, gewenst resultaat, acties, budget en planning.">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
 
+<nav class="site-nav">
+  <div class="wrap">
+    <a class="brand" href="#top">Verbouwplan <span>Leliestraat 27</span></a>
+    <div class="nav-links">
+      <a href="#overzicht">Overzicht</a>
+      <a href="#kamers">Kamers</a>
+      <a href="#verduurzaming">Verduurzaming</a>
+      <a href="#budget">Budget</a>
+      <a href="#planning">Planning</a>
+      <a href="#besluiten">Besluiten</a>
+      <a href="#acties">Actielijst</a>
+      <a href="#risicos">Risico's</a>
+      <a href="#oplevering">Oplevering</a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero" id="top">
+  <div class="wrap">
+    <div class="hero-top">
+      <div>
+        <h1 id="hero-title">Verbouwplan</h1>
+        <div class="place" id="hero-place"></div>
+        <div class="sub" id="hero-sub"></div>
+      </div>
+      <button class="reset-btn" id="reset-progress">Voortgang wissen op dit apparaat</button>
+    </div>
+    <div class="stat-row" id="stat-row"></div>
+    <div class="progress-wrap">
+      <div class="progress-label">
+        <span id="progress-label-text"></span>
+        <span id="progress-pct"></span>
+      </div>
+      <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+    </div>
+  </div>
+</header>
+
+<main>
+
+  <section class="section" id="overzicht">
+    <div class="wrap">
+      <div class="section-head">
+        <div class="eyebrow">Woningprofiel</div>
+        <h2>Wat voor huis dit is, en wat dat betekent voor de scope</h2>
+        <p>Dit is een tussenwoning uit 1929. Dat bouwjaar bepaalt vrijwel alles aan het verduurzamingsdeel: waarschijnlijk geen spouwmuur maar een massieve steensmuur, dus spouwisolatie is niet vanzelfsprekend uitvoerbaar.</p>
+      </div>
+      <div class="profile-grid" id="profile-grid"></div>
+      <p class="source-note" id="source-note"></p>
+
+      <div style="margin-top:36px;">
+        <h3 style="font-size:1.05rem;">Al gedaan — blijft buiten scope</h3>
+        <p style="color:var(--text-muted);font-size:0.9rem;margin-top:-6px;">Het geld hoeft niet naar deze onderdelen. De opgave zit in de schil, de installaties, de afwerking en de delen die in het oude plan ontbraken.</p>
+        <div class="done-grid" id="done-grid"></div>
+      </div>
+
+      <div style="margin-top:36px;">
+        <h3 style="font-size:1.05rem;">Wat er niet klopte in het vorige plan</h3>
+        <div id="correcties-list" style="margin-top:14px;"></div>
+        <div class="note">De bedragen in dit plan zijn marktindicaties uit het hoofd, niet opgevraagd bij leveranciers. Ze dienen om te bepalen waar je offertes moet halen, niet om mee te rekenen.</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="kamers">
+    <div class="wrap">
+      <div class="section-head">
+        <div class="eyebrow">Per ruimte</div>
