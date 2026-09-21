@@ -1,6 +1,6 @@
 // Verbouwplan Leliestraat 27 — CRUD-helpers per tabel.
 // Eén bron per soort data; elke pagina haalt hier dezelfde records vandaan.
-import { getSupabase } from "./supabase-client.js?v=1";
+import { getSupabase } from "./supabase-client.js?v=2";
 
 async function listAll(table, { select = "*", order } = {}) {
   const supabase = await getSupabase();

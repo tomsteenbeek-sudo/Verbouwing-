@@ -1,6 +1,6 @@
-import { Actions, People } from "../db.js?v=1";
-import { renderNav, escapeHtml, reportError, toast, openModal, closeModal, confirmDialog, checkboxListHtml, peopleBadgesHtml } from "../ui.js?v=1";
-import { renderBulkBar, wireSelectCheckboxes } from "../bulk.js?v=1";
+import { Actions, People } from "../db.js?v=2";
+import { renderNav, escapeHtml, reportError, toast, openModal, closeModal, confirmDialog, checkboxListHtml, peopleBadgesHtml } from "../ui.js?v=2";
+import { renderBulkBar, wireSelectCheckboxes } from "../bulk.js?v=2";
 
 renderNav();
 document.getElementById("year").textContent = new Date().getFullYear();

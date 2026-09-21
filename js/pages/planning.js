@@ -1,9 +1,9 @@
-import { Rooms, Workdays, People, Tasks, Tools, TaskMaterials, TaskTools } from "../db.js?v=1";
-import { renderNav, escapeHtml, reportError, toast, openModal, closeModal, confirmDialog, statusPillClass, checkboxListHtml, peopleBadgesHtml } from "../ui.js?v=1";
-import { taskCardHtml, wireTaskCards, openTaskForm, TASK_STATUSES } from "../task-shared.js?v=1";
-import { decorateWorkdays, prerequisiteWarning, formatDate } from "../domain.js?v=1";
-import { makeSortable } from "../sortable.js?v=1";
-import { renderBulkBar, wireSelectCheckboxes } from "../bulk.js?v=1";
+import { Rooms, Workdays, People, Tasks, Tools, TaskMaterials, TaskTools } from "../db.js?v=2";
+import { renderNav, escapeHtml, reportError, toast, openModal, closeModal, confirmDialog, statusPillClass, checkboxListHtml, peopleBadgesHtml } from "../ui.js?v=2";
+import { taskCardHtml, wireTaskCards, openTaskForm, TASK_STATUSES } from "../task-shared.js?v=2";
+import { decorateWorkdays, prerequisiteWarning, formatDate } from "../domain.js?v=2";
+import { makeSortable } from "../sortable.js?v=2";
+import { renderBulkBar, wireSelectCheckboxes } from "../bulk.js?v=2";
 
 renderNav();
 document.getElementById("year").textContent = new Date().getFullYear();
