@@ -1,22 +1,23 @@
-import { People, Tasks, Actions, Workdays, Tools } from "../db.js?v=2";
-import { renderNav, escapeHtml, reportError, toast, openModal, closeModal, confirmDialog, statusPillClass } from "../ui.js?v=2";
-import { decorateWorkdays, formatDate } from "../domain.js?v=2";
+import { People, Tasks, Decisions, Workdays, Tools, Purchases, Payments } from "../db.js?v=3";
+import { renderNav, escapeHtml, reportError, toast, openModal, closeModal, confirmDialog, statusPillClass, euro } from "../ui.js?v=3";
+import { decorateWorkdays, formatDate } from "../domain.js?v=3";
+import { computePersonFinance } from "../finance.js?v=3";
 
 renderNav();
 document.getElementById("year").textContent = new Date().getFullYear();
 
-let PEOPLE = [], TASKS = [], ACTIONS = [], WORKDAYS = [], DEPS = [], TOOLS = [];
+let PEOPLE = [], TASKS = [], DECISIONS = [], WORKDAYS = [], DEPS = [], TOOLS = [], PURCHASES = [], PAYMENTS = [];
 
 async function loadAll() {
-  [PEOPLE, TASKS, ACTIONS, WORKDAYS, DEPS, TOOLS] = await Promise.all([
-    People.list(), Tasks.list(), Actions.list(), Workdays.list(), Workdays.dependencies(), Tools.list(),
+  [PEOPLE, TASKS, DECISIONS, WORKDAYS, DEPS, TOOLS, PURCHASES, PAYMENTS] = await Promise.all([
+    People.list(), Tasks.list(), Decisions.list(), Workdays.list(), Workdays.dependencies(), Tools.list(), Purchases.list(), Payments.list(),
   ]);
 }
 
 function countsFor(personId) {
   const openTasks = TASKS.filter((t) => t.people.some((p) => p.id === personId) && t.status !== "Gereed").length;
-  const openActions = ACTIONS.filter((a) => a.people.some((p) => p.id === personId) && a.status === "Open").length;
-  return { openTasks, openActions };
+  const openDecisions = DECISIONS.filter((d) => d.people.some((p) => p.id === personId) && d.status === "Open").length;
+  return { openTasks, openDecisions };
 }
 
 async function render() {
@@ -39,10 +40,10 @@ function renderList() {
 }
 
 function personRowHtml(p) {
-  const { openTasks, openActions } = countsFor(p.id);
+  const { openTasks, openDecisions } = countsFor(p.id);
   const parts = [];
   if (openTasks) parts.push(`${openTasks} open werkzaamhe${openTasks === 1 ? "id" : "den"}`);
-  if (openActions) parts.push(`${openActions} open acti${openActions === 1 ? "e" : "es"}`);
+  if (openDecisions) parts.push(`${openDecisions} open besluit${openDecisions === 1 ? "" : "en"}`);
   return `
     <li class="actie-row" data-id="${p.id}">
       <div class="actie-body">
@@ -72,8 +73,8 @@ function wireRows() {
       e.stopPropagation();
       const id = btn.closest(".actie-row").dataset.id;
       const person = PEOPLE.find((p) => p.id === id);
-      const { openTasks, openActions } = countsFor(id);
-      const warn = (openTasks || openActions) ? ` Werkzaamheden/acties die aan "${person.name}" gekoppeld zijn, blijven bestaan maar verliezen deze koppeling.` : "";
+      const { openTasks, openDecisions } = countsFor(id);
+      const warn = (openTasks || openDecisions) ? ` Werkzaamheden/besluiten die aan "${person.name}" gekoppeld zijn, blijven bestaan maar verliezen deze koppeling.` : "";
       const ok = await confirmDialog(`"${person.name}" verwijderen?${warn}`);
       if (!ok) return;
       try { await People.remove(id); toast("Persoon verwijderd."); render(); }
@@ -89,24 +90,31 @@ function renderDetail(personId) {
 
   const decorated = decorateWorkdays(WORKDAYS, TASKS, DEPS);
   const upcomingTasks = TASKS.filter((t) => t.people.some((p) => p.id === personId) && t.status !== "Gereed");
-  const openActions = ACTIONS.filter((a) => a.people.some((p) => p.id === personId) && a.status === "Open");
+  const openDecisions = DECISIONS.filter((d) => d.people.some((p) => p.id === personId) && d.status === "Open");
   const upcomingWorkdays = decorated.filter((w) =>
     w.status !== "Gereed" && (w.presentPeople.some((p) => p.id === personId) || w.tasks.some((t) => t.people.some((p) => p.id === personId)))
   );
   const responsibleTools = TOOLS.filter((t) => t.responsible_person_id === personId);
+  const finance = computePersonFinance(personId, TASKS, PURCHASES, PAYMENTS);
 
   root.innerHTML = `
     <a href="personen.html" class="btn-secondary" style="display:inline-block;margin-bottom:18px;">← Terug naar personen</a>
     <h2 style="margin-bottom:20px;">${escapeHtml(person.name)}</h2>
+
+    <div class="stat-row" style="margin-bottom:24px;">
+      <div class="stat-card"><div class="n">${euro(finance.responsibleFor)}</div><div class="l">Budgetverantwoordelijk voor</div></div>
+      <div class="stat-card"><div class="n">${euro(finance.paidBySelf)}</div><div class="l">Zelf betaald</div></div>
+      <div class="stat-card"><div class="n">${euro(finance.outstanding)}</div><div class="l">Openstaande inkopen</div></div>
+    </div>
 
     <h3 style="font-size:1rem;margin-bottom:10px;">Komende werkzaamheden</h3>
     ${upcomingTasks.length ? `<ul class="plain-list">${upcomingTasks.map((t) => `
       <li>${escapeHtml(t.title)} <span class="pill ${statusPillClass(t.status)}">${escapeHtml(t.status)}</span>${t.workdays ? ` · Klusdag ${t.workdays.number}` : ""}</li>`).join("")}</ul>`
       : '<p class="empty-state">Geen openstaande werkzaamheden.</p>'}
 
-    <h3 style="font-size:1rem;margin:24px 0 10px;">Acties</h3>
-    ${openActions.length ? `<ul class="plain-list">${openActions.map((a) => `<li>${escapeHtml(a.title)}</li>`).join("")}</ul>`
-      : '<p class="empty-state">Geen openstaande acties.</p>'}
+    <h3 style="font-size:1rem;margin:24px 0 10px;">Besluiten</h3>
+    ${openDecisions.length ? `<ul class="plain-list">${openDecisions.map((d) => `<li>${escapeHtml(d.title)}</li>`).join("")}</ul>`
+      : '<p class="empty-state">Geen openstaande besluiten.</p>'}
 
     <h3 style="font-size:1rem;margin:24px 0 10px;">Komende klusdagen</h3>
     ${upcomingWorkdays.length ? `<ul class="plain-list">${upcomingWorkdays.map((w) => `
@@ -116,6 +124,10 @@ function renderDetail(personId) {
     <h3 style="font-size:1rem;margin:24px 0 10px;">Gereedschap waarvoor verantwoordelijk</h3>
     ${responsibleTools.length ? `<ul class="plain-list">${responsibleTools.map((t) => `<li>${escapeHtml(t.name)}</li>`).join("")}</ul>`
       : '<p class="empty-state">Geen gereedschap gekoppeld.</p>'}
+
+    <h3 style="font-size:1rem;margin:24px 0 10px;">Openstaande inkopen</h3>
+    ${finance.outstandingPurchases.length ? `<ul class="plain-list">${finance.outstandingPurchases.map((p) => `<li>${escapeHtml(p.product)} — ${euro(p.committed_cost ?? p.estimated_cost ?? 0)}</li>`).join("")}</ul>`
+      : '<p class="empty-state">Geen openstaande inkopen.</p>'}
   `;
 }
 

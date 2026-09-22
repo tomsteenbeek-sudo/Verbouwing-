@@ -4,12 +4,14 @@
 
 const NAV_ITEMS = [
   { href: "index.html", label: "Dashboard" },
-  { href: "kamers.html", label: "Kamers" },
   { href: "planning.html", label: "Planning" },
-  { href: "acties.html", label: "Acties" },
+  { href: "kamers.html", label: "Kamers" },
+  { href: "besluiten.html", label: "Besluiten" },
+  { href: "offertes.html", label: "Offertes" },
+  { href: "inkopen.html", label: "Inkopen" },
+  { href: "budget.html", label: "Budget" },
   { href: "materialen.html", label: "Materialen" },
   { href: "gereedschap.html", label: "Gereedschap" },
-  { href: "budget.html", label: "Budget" },
   { href: "plattegronden.html", label: "Plattegronden" },
   { href: "risicos.html", label: "Risico's" },
   { href: "oplevering.html", label: "Oplevering" },

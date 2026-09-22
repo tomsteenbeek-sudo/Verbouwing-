@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=2">
+<link rel="stylesheet" href="css/style.css?v=3">
 </head>
 <body>
 
@@ -32,12 +32,17 @@
     <div>
       <div class="dashboard-grid" style="margin-bottom:0;">
         <div class="card dashboard-tile" id="stat-voortgang"></div>
-        <div class="card dashboard-tile" id="stat-acties"></div>
-        <div class="card dashboard-tile" id="stat-urgent"></div>
+        <div class="card dashboard-tile" id="stat-besluiten"></div>
+        <div class="card dashboard-tile" id="stat-offertes"></div>
         <div class="card dashboard-tile" id="stat-materialen"></div>
       </div>
     </div>
   </div>
+
+  <section class="section" style="padding-top:0;">
+    <h3 style="font-size:1rem;margin-bottom:12px;">Budget</h3>
+    <div id="dash-budget" class="card pad"><div class="loading-state">Laden…</div></div>
+  </section>
 
   <section id="dash-warnings-section" class="section" style="padding-top:0;">
     <h3 style="font-size:1rem;margin-bottom:12px;">Waarschuwingen</h3>
@@ -54,6 +59,6 @@
   <div class="wrap">Verbouwplan Leliestraat 27 · werkdocument · <span id="year"></span></div>
 </footer>
 
-<script type="module" src="js/pages/dashboard.js?v=2"></script>
+<script type="module" src="js/pages/dashboard.js?v=3"></script>
 </body>
 </html>

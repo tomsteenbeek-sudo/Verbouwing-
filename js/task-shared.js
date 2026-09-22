@@ -1,17 +1,24 @@
 // Gedeelde werkzaamheid-kaart en -formulier, gebruikt door Kamers en Planning.
 // Eén databronrecord (tasks-tabel) wordt hier gerenderd; wijzig je het op de ene
 // pagina, dan is het overal bijgewerkt omdat beide pagina's dezelfde rij ophalen.
-import { Tasks } from "./db.js?v=2";
-import { openModal, closeModal, optionsHtml, checkboxListHtml, peopleBadgesHtml, toast, reportError, confirmDialog, escapeHtml } from "./ui.js?v=2";
+import { Tasks } from "./db.js?v=3";
+import { openModal, closeModal, optionsHtml, checkboxListHtml, peopleBadgesHtml, toast, reportError, confirmDialog, escapeHtml, euro } from "./ui.js?v=3";
+import { taskEstimated, taskCommitted, taskActual } from "./finance.js?v=3";
 
 export const TASK_CATEGORIES = ["Sloop", "Elektra", "Isolatie", "Herstel", "Schilderwerk", "Vloer", "Afwerking", "Trap", "Installatie", "Interieur", "Buiten", "Tuin", "Controle", "Timmerwerk", "Administratie"];
 export const TASK_STATUSES = ["Nog in te plannen", "Te doen", "Bezig", "Gereed"];
+export const TASK_TYPES = ["Werkzaamheid", "Voorbereidende actie"];
 
 export function taskCardHtml(task, opts = {}) {
   const isGereed = task.status === "Gereed";
   const subParts = [];
   if (opts.showRoom !== false) subParts.push(task.rooms ? escapeHtml(task.rooms.name) : "Algemeen");
   if (opts.showWorkday !== false) subParts.push(task.workdays ? "Klusdag " + task.workdays.number : "Nog in te plannen");
+  if (task.phases) subParts.push(`<span style="color:${task.phases.color};">${escapeHtml(task.phases.name)}</span>`);
+  const estimated = taskEstimated(task);
+  const budgetLine = opts.purchases && (estimated || taskCommitted(task, opts.purchases) || taskActual(task, opts.purchases))
+    ? `<div class="sub">${estimated ? "Begroot " + euro(estimated) + " · " : ""}Verplicht ${euro(taskCommitted(task, opts.purchases))} · Betaald ${euro(taskActual(task, opts.purchases))}</div>`
+    : "";
   return `
     <div class="task-card ${isGereed ? "gereed" : ""}" data-id="${task.id}">
       <div class="task-card-head">
@@ -19,8 +26,9 @@ export function taskCardHtml(task, opts = {}) {
         ${opts.selectable ? '<input type="checkbox" class="task-select-cb" aria-label="Selecteren">' : ""}
         <input type="checkbox" class="task-done-cb" ${isGereed ? "checked" : ""} aria-label="Gereed">
         <div style="flex:1;min-width:0;">
-          <div class="title">${opts.sortOrderLabel != null ? `<span class="order-nr">${opts.sortOrderLabel}.</span> ` : ""}${escapeHtml(task.title)}</div>
+          <div class="title">${opts.sortOrderLabel != null ? `<span class="order-nr">${opts.sortOrderLabel}.</span> ` : ""}${escapeHtml(task.title)}${task.type === "Voorbereidende actie" ? ' <span class="badge">Voorbereidende actie</span>' : ""}</div>
           <div class="sub">${subParts.join(" · ")}${task.is_external ? ' <span class="badge extern">Extern</span>' : ""}</div>
+          ${budgetLine}
           ${peopleBadgesHtml(task.people)}
         </div>
       </div>
@@ -29,6 +37,7 @@ export function taskCardHtml(task, opts = {}) {
         ${task.dependency_note ? `<div class="row"><strong>Afhankelijkheid</strong>${escapeHtml(task.dependency_note)}</div>` : ""}
         ${task.notes ? `<div class="row"><strong>Opmerkingen</strong>${escapeHtml(task.notes)}</div>` : ""}
         <div class="row"><strong>Categorie</strong>${escapeHtml(task.category || "—")}</div>
+        ${task.budgetResponsible && task.budgetResponsible.length ? `<div class="row"><strong>Budgetverantwoordelijk</strong>${task.budgetResponsible.map((p) => escapeHtml(p.name)).join(", ")}</div>` : ""}
         ${opts.workdays ? `
         <div class="row">
           <strong>Verplaats naar klusdag</strong>
@@ -93,17 +102,22 @@ export function wireTaskCards(container, tasksArray, ctx) {
   });
 }
 
-export function openTaskForm({ task, rooms, workdays, people, defaults = {} }, onSaved) {
+export function openTaskForm({ task, rooms, workdays, people, phases = [], budgetCategories = [], defaults = {} }, onSaved) {
   const t = task || {
     title: "", description: "", room_id: defaults.room_id || "", workday_id: defaults.workday_id || "",
     category: "", status: "Nog in te plannen", dependency_note: "", notes: "", is_external: false,
+    type: defaults.type || "Werkzaamheid", phase_id: defaults.phase_id || "",
+    estimated_labor_cost: "", estimated_material_cost: "", budget_category_id: "",
   };
   const selectedPersonIds = (task ? task.people : []).map((p) => p.id);
+  const selectedResponsibleIds = (task ? task.budgetResponsible : []).map((p) => p.id);
   const workdayOptions = workdays.map((w) => ({ id: w.id, name: `Klusdag ${w.number}` }));
   const overlay = openModal(task ? "Werkzaamheid bewerken" : "Nieuwe werkzaamheid", `
     <form id="task-form">
       <div class="form-field full"><label>Titel</label><input type="text" name="title" required value="${escapeHtml(t.title)}"></div>
       <div class="form-grid">
+        <div class="form-field"><label>Type</label><select name="type">${TASK_TYPES.map((ty) => `<option value="${ty}" ${ty === t.type ? "selected" : ""}>${ty}</option>`).join("")}</select></div>
+        <div class="form-field"><label>Fase</label><select name="phase_id">${optionsHtml(phases, t.phase_id, { empty: "Geen fase" })}</select></div>
         <div class="form-field"><label>Kamer</label><select name="room_id">${optionsHtml(rooms, t.room_id, { empty: "Algemeen / geen kamer" })}</select></div>
         <div class="form-field"><label>Klusdag</label><select name="workday_id">${optionsHtml(workdayOptions, t.workday_id, { empty: "Nog in te plannen" })}</select></div>
         <div class="form-field"><label>Categorie</label>
@@ -116,8 +130,12 @@ export function openTaskForm({ task, rooms, workdays, people, defaults = {} }, o
           <select name="status">${TASK_STATUSES.map((s) => `<option value="${s}" ${s === t.status ? "selected" : ""}>${s}</option>`).join("")}</select>
         </div>
         <div class="form-field"><label>Uitvoering</label><div class="checkbox-field"><input type="checkbox" name="is_external" ${t.is_external ? "checked" : ""}><span>Extern (bv. elektricien, vloerlegger)</span></div></div>
+        <div class="form-field"><label>Budgetcategorie</label><select name="budget_category_id">${optionsHtml(budgetCategories, t.budget_category_id, { empty: "Geen categorie" })}</select></div>
+        <div class="form-field"><label>Begroot arbeid (€)</label><input type="number" step="0.01" name="estimated_labor_cost" value="${t.estimated_labor_cost ?? ""}"></div>
+        <div class="form-field"><label>Begroot materiaal (€)</label><input type="number" step="0.01" name="estimated_material_cost" value="${t.estimated_material_cost ?? ""}"></div>
       </div>
-      <div class="form-field full"><label>Toegewezen aan</label>${checkboxListHtml(people, selectedPersonIds, "person_ids")}</div>
+      <div class="form-field full"><label>Toegewezen aan (uitvoerders)</label>${checkboxListHtml(people, selectedPersonIds, "person_ids")}</div>
+      <div class="form-field full"><label>Budgetverantwoordelijke(n)</label>${checkboxListHtml(people, selectedResponsibleIds, "responsible_ids")}</div>
       <div class="form-field full"><label>Omschrijving</label><textarea name="description">${escapeHtml(t.description || "")}</textarea></div>
       <div class="form-field full"><label>Afhankelijkheid (optioneel)</label><input type="text" name="dependency_note" value="${escapeHtml(t.dependency_note || "")}" placeholder="bv. moet drogen vóór volgende stap"></div>
       <div class="form-field full"><label>Opmerkingen</label><textarea name="notes">${escapeHtml(t.notes || "")}</textarea></div>
@@ -142,19 +160,26 @@ export function openTaskForm({ task, rooms, workdays, people, defaults = {} }, o
     const fd = new FormData(e.target);
     const patch = {
       title: fd.get("title").trim(),
+      type: fd.get("type"),
+      phase_id: fd.get("phase_id") || null,
       room_id: fd.get("room_id") || null,
       workday_id: fd.get("workday_id") || null,
       category: fd.get("category") || null,
       status: fd.get("status"),
       is_external: fd.get("is_external") === "on",
+      budget_category_id: fd.get("budget_category_id") || null,
+      estimated_labor_cost: fd.get("estimated_labor_cost") ? Number(fd.get("estimated_labor_cost")) : null,
+      estimated_material_cost: fd.get("estimated_material_cost") ? Number(fd.get("estimated_material_cost")) : null,
       description: fd.get("description") || null,
       dependency_note: fd.get("dependency_note") || null,
       notes: fd.get("notes") || null,
     };
     const personIds = fd.getAll("person_ids");
+    const responsibleIds = fd.getAll("responsible_ids");
     try {
       const saved = task ? await Tasks.update(task.id, patch) : await Tasks.create(patch);
       await Tasks.setPersons(saved.id, personIds);
+      await Tasks.setBudgetResponsibles(saved.id, responsibleIds);
       toast("Werkzaamheid opgeslagen.");
       closeModal();
       onSaved();

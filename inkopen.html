@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Kamers — Verbouwplan Leliestraat 27</title>
+<title>Inkopen — Verbouwplan Leliestraat 27</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -16,24 +16,23 @@
 <header class="page-header">
   <div class="wrap">
     <div>
-      <div class="eyebrow">Per ruimte</div>
-      <h1>Kamers</h1>
-      <p>Klik op een kamer voor de volledige werkzaamhedenlijst. Dezelfde werkzaamheid die je hier ziet, is ook precies wat er op de bijbehorende klusdag staat.</p>
+      <div class="eyebrow">De praktische inkooplijst</div>
+      <h1>Inkopen</h1>
+      <p>Elk bedrag hier telt automatisch door in de werkzaamheid, de budgetcategorie, de fase en het totaalbudget.</p>
     </div>
-    <div class="actions-row"><button class="btn-primary" id="add-room-btn">+ Kamer</button></div>
+    <div class="actions-row"><button class="btn-primary" id="add-purchase-btn">+ Inkoop</button></div>
   </div>
 </header>
 
-<main class="wrap" style="padding:36px 20px;" id="kamers-root">
-  <div class="loading-state">Laden…</div>
+<main class="wrap" style="padding:36px 20px;">
+  <div class="filter-select-row" id="filter-bar"></div>
+  <div id="inkopen-root"><div class="loading-state">Laden…</div></div>
 </main>
-
-<div id="bulk-bar" class="bulk-bar"></div>
 
 <footer>
   <div class="wrap">Verbouwplan Leliestraat 27 · werkdocument · <span id="year"></span></div>
 </footer>
 
-<script type="module" src="js/pages/kamers.js?v=3"></script>
+<script type="module" src="js/pages/inkopen.js?v=3"></script>
 </body>
 </html>

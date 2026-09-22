@@ -1,5 +1,5 @@
-import { Materials, Rooms } from "../db.js?v=2";
-import { renderNav, escapeHtml, reportError, toast, openModal, closeModal, confirmDialog, optionsHtml, euro } from "../ui.js?v=2";
+import { Materials, Rooms } from "../db.js?v=3";
+import { renderNav, escapeHtml, reportError, toast, openModal, closeModal, confirmDialog, optionsHtml, euro } from "../ui.js?v=3";
 
 renderNav();
 document.getElementById("year").textContent = new Date().getFullYear();
