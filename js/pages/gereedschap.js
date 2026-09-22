@@ -4,9 +4,14 @@ import { renderNav, escapeHtml, reportError, toast, openModal, closeModal, confi
 renderNav();
 document.getElementById("year").textContent = new Date().getFullYear();
 
-let TOOLS = [];
-let TASK_TOOLS = [];
-let PEOPLE = [];
+const BUCKETS = [
+  { key: "bepalen", label: "Nog bepalen", match: (t) => !t.have_it && !t.acquire_method },
+  { key: "kopen", label: "Nog kopen", match: (t) => !t.have_it && t.acquire_method === "Kopen" },
+  { key: "lenen-huren", label: "Nog lenen/huren", match: (t) => !t.have_it && (t.acquire_method === "Lenen" || t.acquire_method === "Huren") },
+  { key: "in-huis", label: "In huis", match: (t) => t.have_it },
+];
+
+let TOOLS = [], TASK_TOOLS = [], PEOPLE = [];
 
 async function loadAll() {
   [TOOLS, TASK_TOOLS, PEOPLE] = await Promise.all([Tools.list(), TaskTools.listAll(), People.list()]);
@@ -20,56 +25,32 @@ async function render() {
   const root = document.getElementById("gereedschap-root");
   try {
     await loadAll();
-    root.innerHTML = `<ul class="action-list" id="tools-list">${TOOLS.map(toolRowHtml).join("")}</ul>`;
-    wireRows();
+    root.innerHTML = `<div class="status-columns">${BUCKETS.map((b) => {
+      const items = TOOLS.filter(b.match);
+      return `
+        <div>
+          <div class="status-column-head">${b.label} (${items.length})</div>
+          ${items.length ? items.map(toolItemHtml).join("") : '<p class="empty-hint">Niets in deze categorie.</p>'}
+        </div>`;
+    }).join("")}</div>`;
+    root.querySelectorAll(".material-item").forEach((el) => {
+      el.addEventListener("click", () => openToolForm(TOOLS.find((t) => t.id === el.dataset.id)));
+    });
   } catch (err) {
     reportError(err, "het laden van het gereedschap");
     root.innerHTML = `<p class="empty-state">Kon het gereedschap niet laden.</p>`;
   }
 }
 
-function toolRowHtml(t) {
+function toolItemHtml(t) {
   const linkedTasks = tasksForTool(t.id);
+  const meta = [t.category || "Algemeen", t.acquire_method, t.people?.name || "Niet toegewezen"].filter(Boolean).join(" · ");
   return `
-    <li class="actie-row" data-id="${t.id}">
-      <input type="checkbox" class="tool-have-cb" ${t.have_it ? "checked" : ""} aria-label="Heb ik al">
-      <div class="actie-body">
-        <div class="actie-title">${escapeHtml(t.name)}${t.quantity ? ` <span style="color:var(--text-muted);font-weight:400;">(${escapeHtml(t.quantity)})</span>` : ""}</div>
-        <div class="actie-meta">
-          <span class="meta-item">${escapeHtml(t.category || "Algemeen")}</span>
-          ${t.acquire_method ? `<span class="meta-item">${escapeHtml(t.acquire_method)}</span>` : ""}
-          <span class="meta-item">👤 ${escapeHtml(t.people?.name || "Niet toegewezen")}</span>
-        </div>
-        ${linkedTasks.length ? `<div class="actie-note">Nodig voor: ${linkedTasks.map(escapeHtml).join(", ")}</div>` : ""}
-        <div class="task-card-actions" style="margin-top:8px;">
-          <button type="button" class="btn-icon tool-edit-btn">Bewerken</button>
-          <button type="button" class="btn-icon tool-delete-btn">Verwijderen</button>
-        </div>
-      </div>
-    </li>`;
-}
-
-function wireRows() {
-  document.querySelectorAll(".tool-have-cb").forEach((cb) => {
-    cb.addEventListener("change", async (e) => {
-      const id = e.target.closest(".actie-row").dataset.id;
-      try { await Tools.update(id, { have_it: e.target.checked }); toast("Bijgewerkt."); render(); }
-      catch (err) { reportError(err, "bijwerken"); }
-    });
-  });
-  document.querySelectorAll(".tool-edit-btn").forEach((btn) => {
-    btn.addEventListener("click", () => openToolForm(TOOLS.find((t) => t.id === btn.closest(".actie-row").dataset.id)));
-  });
-  document.querySelectorAll(".tool-delete-btn").forEach((btn) => {
-    btn.addEventListener("click", async () => {
-      const id = btn.closest(".actie-row").dataset.id;
-      const tool = TOOLS.find((t) => t.id === id);
-      const ok = await confirmDialog(`"${tool.name}" verwijderen?`);
-      if (!ok) return;
-      try { await Tools.remove(id); toast("Gereedschap verwijderd."); render(); }
-      catch (err) { reportError(err, "verwijderen"); }
-    });
-  });
+    <div class="material-item" data-id="${t.id}">
+      <div class="name">${escapeHtml(t.name)}${t.quantity ? ` <span style="color:var(--text-muted);font-weight:400;">(${escapeHtml(t.quantity)})</span>` : ""}</div>
+      ${meta ? `<div class="meta">${escapeHtml(meta)}</div>` : ""}
+      ${linkedTasks.length ? `<div class="meta">Nodig voor: ${linkedTasks.map(escapeHtml).join(", ")}</div>` : ""}
+    </div>`;
 }
 
 function openToolForm(tool) {
