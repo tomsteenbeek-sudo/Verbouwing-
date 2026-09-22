@@ -118,10 +118,10 @@ export const Workdays = {
 export const Tasks = {
   list: async () => {
     const rows = await listAll("tasks", {
-      select: "*, rooms(id,name,slug), workdays(id,number), phases(id,name,color), task_persons(people(id,name)), task_budget_responsibles(people(id,name))",
+      select: "*, rooms(id,name,slug), workdays(id,number), phases(id,name,color), task_persons(people(id,name))",
       order: { column: "sort_order" },
     });
-    return withPeople(withPeople(rows, "task_persons"), "task_budget_responsibles", "budgetResponsible");
+    return withPeople(rows, "task_persons");
   },
   create: (row) => insertRow("tasks", row),
   update: (id, patch) => updateRow("tasks", id, patch),
@@ -130,7 +130,6 @@ export const Tasks = {
   bulkRemove: (ids) => bulkDeleteRows("tasks", ids),
   setPersons: (taskId, personIds) => setLinks("task_persons", "task_id", taskId, "person_id", personIds),
   addPersonToMany: (taskIds, personId) => addLinkToMany("task_persons", "task_id", taskIds, "person_id", personId),
-  setBudgetResponsibles: (taskId, personIds) => setLinks("task_budget_responsibles", "task_id", taskId, "person_id", personIds),
   materialsFor: async (taskId) => {
     const supabase = await getSupabase();
     const { data, error } = await supabase.from("task_materials").select("materials(*)").eq("task_id", taskId);
@@ -231,13 +230,6 @@ export const Purchases = {
   remove: (id) => deleteRow("purchases", id),
   bulkUpdate: (ids, patch) => bulkUpdateRows("purchases", ids, patch),
   bulkRemove: (ids) => bulkDeleteRows("purchases", ids),
-};
-
-export const Payments = {
-  list: () => listAll("payments", { select: "*, people(id,name)", order: { column: "payment_date" } }),
-  create: (row) => insertRow("payments", row),
-  update: (id, patch) => updateRow("payments", id, patch),
-  remove: (id) => deleteRow("payments", id),
 };
 
 export const Budgets = {

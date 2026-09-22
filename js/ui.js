@@ -16,6 +16,7 @@ const NAV_ITEMS = [
   { href: "risicos.html", label: "Risico's" },
   { href: "oplevering.html", label: "Oplevering" },
   { href: "personen.html", label: "Personen" },
+  { href: "buiten-scope.html", label: "Buiten scope" },
 ];
 
 export function renderNav() {

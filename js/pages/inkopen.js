@@ -1,16 +1,17 @@
-import { Purchases, Payments, Rooms, Phases, BudgetCategories, Tasks, People } from "../db.js?v=3";
-import { renderNav, escapeHtml, reportError, toast, openModal, closeModal, confirmDialog, optionsHtml, euro, statusPillClass } from "../ui.js?v=3";
+import { Purchases, Rooms, Phases, BudgetCategories, Tasks, People } from "../db.js?v=4";
+import { renderNav, escapeHtml, reportError, toast, openModal, closeModal, confirmDialog, optionsHtml, euro, statusPillClass } from "../ui.js?v=4";
+import { purchaseEstimatedTotal, purchaseActualTotal } from "../finance.js?v=4";
 
 renderNav();
 document.getElementById("year").textContent = new Date().getFullYear();
 
 const STATUSES = ["Nog bepalen", "Gekozen", "Nog bestellen", "Besteld", "Deels ontvangen", "In huis"];
-let PURCHASES = [], PAYMENTS = [], ROOMS = [], PHASES = [], CATEGORIES = [], TASKS = [], PEOPLE = [];
+let PURCHASES = [], ROOMS = [], PHASES = [], CATEGORIES = [], TASKS = [], PEOPLE = [];
 let filters = { status: "", phase: "", category: "", room: "" };
 
 async function loadAll() {
-  [PURCHASES, PAYMENTS, ROOMS, PHASES, CATEGORIES, TASKS, PEOPLE] = await Promise.all([
-    Purchases.list(), Payments.list(), Rooms.list(), Phases.list(), BudgetCategories.list(), Tasks.list(), People.list(),
+  [PURCHASES, ROOMS, PHASES, CATEGORIES, TASKS, PEOPLE] = await Promise.all([
+    Purchases.list(), Rooms.list(), Phases.list(), BudgetCategories.list(), Tasks.list(), People.list(),
   ]);
 }
 
@@ -20,10 +21,6 @@ function matches(p) {
   if (filters.category && p.budget_category_id !== filters.category) return false;
   if (filters.room && p.room_id !== filters.room) return false;
   return true;
-}
-
-function paymentsFor(purchaseId) {
-  return PAYMENTS.filter((pay) => pay.purchase_id === purchaseId);
 }
 
 async function render() {
@@ -57,31 +54,35 @@ async function render() {
 
 function purchaseCardHtml(p) {
   const meta = [p.rooms?.name, p.phases?.name, p.budget_categories?.name, p.tasks?.title].filter(Boolean).join(" · ");
-  const payments = paymentsFor(p.id);
-  const paidSum = payments.reduce((sum, pay) => sum + (Number(pay.amount) || 0), 0);
+  const estimatedTotal = purchaseEstimatedTotal(p);
+  const actualTotal = purchaseActualTotal(p);
+  const diff = estimatedTotal - actualTotal;
+  let diffLine = "";
+  if (estimatedTotal && actualTotal) {
+    if (diff > 0.005) diffLine = `<div class="sub" style="color:var(--ok, #3a7d44);">Verschil: ${euro(diff)} goedkoper dan begroot</div>`;
+    else if (diff < -0.005) diffLine = `<div class="sub" style="color:var(--danger, #a33);">Verschil: ${euro(-diff)} duurder dan begroot</div>`;
+  }
   return `
     <div class="task-card" data-id="${p.id}">
       <div class="task-card-head">
         <input type="checkbox" class="task-done-cb" ${p.received ? "checked" : ""} aria-label="Ontvangen" title="Ontvangen">
         <div style="flex:1;min-width:0;">
-          <div class="title">${escapeHtml(p.product)} <span class="pill ${statusPillClass(p.status)}">${escapeHtml(p.status)}</span></div>
+          <div class="title">${escapeHtml(p.product)} <span class="pill ${statusPillClass(p.status)}">${escapeHtml(p.status)}</span>${!p.count_in_budget ? ' <span class="badge">Telt niet mee in budget</span>' : ""}</div>
           <div class="sub">${escapeHtml(meta)}</div>
-          <div class="sub">${p.estimated_cost != null ? "Begroot " + euro(p.estimated_cost) + " · " : ""}${p.committed_cost != null ? "Verplicht " + euro(p.committed_cost) + " · " : ""}${p.actual_cost != null ? "Betaald " + euro(p.actual_cost) : ""}</div>
+          <div class="sub">Begroot: materiaal ${euro(p.estimated_material_cost || 0)} · arbeid ${euro(p.estimated_labor_cost || 0)} · totaal ${euro(estimatedTotal)}</div>
+          <div class="sub">Werkelijk: materiaal ${euro(p.actual_material_cost || 0)} · arbeid ${euro(p.actual_labor_cost || 0)} · totaal ${euro(actualTotal)}</div>
+          ${diffLine}
         </div>
       </div>
       <div class="task-card-detail">
         ${p.description ? `<div class="row"><strong>Omschrijving</strong>${escapeHtml(p.description)}</div>` : ""}
         ${p.quantity || p.unit ? `<div class="row"><strong>Hoeveelheid</strong>${escapeHtml([p.quantity, p.unit].filter(Boolean).join(" "))}</div>` : ""}
-        ${p.supplier ? `<div class="row"><strong>Leverancier</strong>${escapeHtml(p.supplier)}</div>` : ""}
+        ${p.supplier ? `<div class="row"><strong>Leverancier/uitvoerder</strong>${escapeHtml(p.supplier)}</div>` : ""}
         ${p.url ? `<div class="row"><strong>Link</strong><a href="${escapeHtml(p.url)}" target="_blank" rel="noopener">${escapeHtml(p.url)}</a></div>` : ""}
         ${p.order_date ? `<div class="row"><strong>Besteld op</strong>${escapeHtml(p.order_date)}</div>` : ""}
         ${p.expected_delivery_date ? `<div class="row"><strong>Verwachte levering</strong>${escapeHtml(p.expected_delivery_date)}</div>` : ""}
         ${p.notes ? `<div class="row"><strong>Opmerkingen</strong>${escapeHtml(p.notes)}</div>` : ""}
-        <div class="row">
-          <strong>Betalingen${paidSum ? " (" + euro(paidSum) + " geregistreerd)" : ""}</strong>
-          ${payments.length ? `<ul class="plain-list">${payments.map((pay) => `<li>${euro(pay.amount)} — ${escapeHtml(pay.people?.name || "onbekend")}${pay.payment_date ? " · " + escapeHtml(pay.payment_date) : ""} <button type="button" class="btn-icon payment-delete-btn" data-payment-id="${pay.id}">✕</button></li>`).join("")}</ul>` : '<p class="empty-hint">Nog geen betalingen geregistreerd.</p>'}
-          <button type="button" class="btn-icon purchase-add-payment-btn">+ Betaling</button>
-        </div>
+        <div class="row"><strong>Meetellen in huidig verbouwbudget</strong>${p.count_in_budget ? "Ja" : "Nee"}</div>
         <div class="task-card-actions">
           <button type="button" class="btn-icon purchase-edit-btn">Bewerken</button>
           <button type="button" class="btn-icon purchase-delete-btn">Verwijderen</button>
@@ -121,79 +122,37 @@ function wireCards(root) {
       catch (err) { reportError(err, "verwijderen"); }
     });
   });
-  root.querySelectorAll(".purchase-add-payment-btn").forEach((btn) => {
-    btn.addEventListener("click", (e) => openPaymentForm(e.target.closest(".task-card").dataset.id));
-  });
-  root.querySelectorAll(".payment-delete-btn").forEach((btn) => {
-    btn.addEventListener("click", async (e) => {
-      e.stopPropagation();
-      const ok = await confirmDialog("Deze betaling verwijderen?");
-      if (!ok) return;
-      try { await Payments.remove(btn.dataset.paymentId); toast("Betaling verwijderd."); render(); }
-      catch (err) { reportError(err, "verwijderen betaling"); }
-    });
-  });
-}
-
-function openPaymentForm(purchaseId) {
-  const overlay = openModal("Betaling toevoegen", `
-    <form id="payment-form">
-      <div class="form-grid">
-        <div class="form-field"><label>Bedrag</label><input type="number" step="0.01" name="amount" required></div>
-        <div class="form-field"><label>Door</label><select name="person_id">${optionsHtml(PEOPLE, "", { empty: "Onbekend" })}</select></div>
-        <div class="form-field"><label>Datum</label><input type="date" name="payment_date"></div>
-      </div>
-      <div class="form-field full"><label>Opmerkingen</label><input type="text" name="notes"></div>
-      <div class="modal-actions">
-        <button type="button" class="btn-secondary" id="payment-cancel-btn">Annuleren</button>
-        <button type="submit" class="btn-primary">Toevoegen</button>
-      </div>
-    </form>`);
-  overlay.querySelector("#payment-cancel-btn").addEventListener("click", closeModal);
-  overlay.querySelector("#payment-form").addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const fd = new FormData(e.target);
-    try {
-      await Payments.create({
-        purchase_id: purchaseId,
-        amount: Number(fd.get("amount")),
-        person_id: fd.get("person_id") || null,
-        payment_date: fd.get("payment_date") || null,
-        notes: fd.get("notes") || null,
-      });
-      toast("Betaling toegevoegd.");
-      closeModal();
-      render();
-    } catch (err) { reportError(err, "toevoegen betaling"); }
-  });
 }
 
 function openPurchaseForm(purchase) {
   const p = purchase || {
     product: "", category: "", description: "", quantity: "", unit: "", supplier: "", url: "",
-    estimated_cost: "", committed_cost: "", actual_cost: "", status: "Nog bepalen",
+    estimated_material_cost: "", estimated_labor_cost: "", actual_material_cost: "", actual_labor_cost: "",
+    status: "Nog bepalen", count_in_budget: true,
     order_date: "", expected_delivery_date: "", room_id: "", phase_id: "", task_id: "", budget_category_id: "", notes: "",
   };
   const taskOptions = TASKS.map((t) => ({ id: t.id, name: t.title }));
   const overlay = openModal(purchase ? "Inkoop bewerken" : "Nieuwe inkoop", `
     <form id="purchase-form">
-      <div class="form-field full"><label>Product</label><input type="text" name="product" required value="${escapeHtml(p.product)}"></div>
+      <div class="form-field full"><label>Naam</label><input type="text" name="product" required value="${escapeHtml(p.product)}"></div>
       <div class="form-grid">
         <div class="form-field"><label>Categorie (vrije tekst)</label><input type="text" name="category" value="${escapeHtml(p.category || "")}"></div>
         <div class="form-field"><label>Hoeveelheid</label><input type="text" name="quantity" value="${escapeHtml(p.quantity || "")}"></div>
         <div class="form-field"><label>Eenheid</label><input type="text" name="unit" value="${escapeHtml(p.unit || "")}"></div>
-        <div class="form-field"><label>Leverancier/winkel</label><input type="text" name="supplier" value="${escapeHtml(p.supplier || "")}"></div>
+        <div class="form-field"><label>Leverancier/uitvoerder</label><input type="text" name="supplier" value="${escapeHtml(p.supplier || "")}"></div>
         <div class="form-field"><label>Status</label><select name="status">${STATUSES.map((s) => `<option value="${s}" ${s === p.status ? "selected" : ""}>${s}</option>`).join("")}</select></div>
-        <div class="form-field"><label>Geplande prijs</label><input type="number" step="0.01" name="estimated_cost" value="${p.estimated_cost ?? ""}"></div>
-        <div class="form-field"><label>Verplicht bedrag</label><input type="number" step="0.01" name="committed_cost" value="${p.committed_cost ?? ""}"></div>
-        <div class="form-field"><label>Werkelijk bedrag</label><input type="number" step="0.01" name="actual_cost" value="${p.actual_cost ?? ""}"></div>
+        <div class="form-field"><label>Materiaal begroot (€)</label><input type="number" step="0.01" name="estimated_material_cost" value="${p.estimated_material_cost ?? ""}"></div>
+        <div class="form-field"><label>Arbeid begroot (€)</label><input type="number" step="0.01" name="estimated_labor_cost" value="${p.estimated_labor_cost ?? ""}"></div>
+        <div class="form-field"><label>Materiaal werkelijk (€)</label><input type="number" step="0.01" name="actual_material_cost" value="${p.actual_material_cost ?? ""}"></div>
+        <div class="form-field"><label>Arbeid werkelijk (€)</label><input type="number" step="0.01" name="actual_labor_cost" value="${p.actual_labor_cost ?? ""}"></div>
         <div class="form-field"><label>Besteld op</label><input type="date" name="order_date" value="${p.order_date || ""}"></div>
         <div class="form-field"><label>Verwachte levering</label><input type="date" name="expected_delivery_date" value="${p.expected_delivery_date || ""}"></div>
         <div class="form-field"><label>Ontvangen</label><div class="checkbox-field"><input type="checkbox" name="received" ${p.received ? "checked" : ""}><span>Ja</span></div></div>
+        <div class="form-field"><label>Meetellen in huidig verbouwbudget</label><div class="checkbox-field"><input type="checkbox" name="count_in_budget" ${p.count_in_budget !== false ? "checked" : ""}><span>Ja</span></div></div>
         <div class="form-field"><label>Kamer</label><select name="room_id">${optionsHtml(ROOMS, p.room_id, { empty: "Geen kamer" })}</select></div>
         <div class="form-field"><label>Fase</label><select name="phase_id">${optionsHtml(PHASES, p.phase_id, { empty: "Geen fase" })}</select></div>
         <div class="form-field"><label>Budgetcategorie</label><select name="budget_category_id">${optionsHtml(CATEGORIES, p.budget_category_id, { empty: "Geen categorie" })}</select></div>
-        <div class="form-field"><label>Gekoppelde werkzaamheid</label><select name="task_id">${optionsHtml(taskOptions, p.task_id, { empty: "Geen werkzaamheid" })}</select></div>
+        <div class="form-field"><label>Gekoppelde werkzaamheid (informatief)</label><select name="task_id">${optionsHtml(taskOptions, p.task_id, { empty: "Geen werkzaamheid" })}</select></div>
       </div>
       <div class="form-field full"><label>Link</label><input type="url" name="url" value="${escapeHtml(p.url || "")}"></div>
       <div class="form-field full"><label>Opmerkingen</label><textarea name="notes">${escapeHtml(p.notes || "")}</textarea></div>
@@ -224,10 +183,12 @@ function openPurchaseForm(purchase) {
       unit: fd.get("unit") || null,
       supplier: fd.get("supplier") || null,
       url: fd.get("url") || null,
-      estimated_cost: num("estimated_cost"),
-      committed_cost: num("committed_cost"),
-      actual_cost: num("actual_cost"),
+      estimated_material_cost: num("estimated_material_cost"),
+      estimated_labor_cost: num("estimated_labor_cost"),
+      actual_material_cost: num("actual_material_cost"),
+      actual_labor_cost: num("actual_labor_cost"),
       status: fd.get("status"),
+      count_in_budget: fd.get("count_in_budget") === "on",
       order_date: fd.get("order_date") || null,
       expected_delivery_date: fd.get("expected_delivery_date") || null,
       received: fd.get("received") === "on",
@@ -240,7 +201,7 @@ function openPurchaseForm(purchase) {
     try {
       if (purchase) await Purchases.update(purchase.id, patch);
       else await Purchases.create(patch);
-      toast("Inkoop opgeslagen.");
+      toast("Inkoop opgeslagen — Budget is automatisch bijgewerkt.");
       closeModal();
       render();
     } catch (err) { reportError(err, "opslaan"); }

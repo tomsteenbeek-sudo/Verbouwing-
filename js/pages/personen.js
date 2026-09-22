@@ -1,16 +1,15 @@
-import { People, Tasks, Decisions, Workdays, Tools, Purchases, Payments } from "../db.js?v=3";
-import { renderNav, escapeHtml, reportError, toast, openModal, closeModal, confirmDialog, statusPillClass, euro } from "../ui.js?v=3";
-import { decorateWorkdays, formatDate } from "../domain.js?v=3";
-import { computePersonFinance } from "../finance.js?v=3";
+import { People, Tasks, Decisions, Workdays, Tools } from "../db.js?v=4";
+import { renderNav, escapeHtml, reportError, toast, openModal, closeModal, confirmDialog, statusPillClass } from "../ui.js?v=4";
+import { decorateWorkdays, formatDate } from "../domain.js?v=4";
 
 renderNav();
 document.getElementById("year").textContent = new Date().getFullYear();
 
-let PEOPLE = [], TASKS = [], DECISIONS = [], WORKDAYS = [], DEPS = [], TOOLS = [], PURCHASES = [], PAYMENTS = [];
+let PEOPLE = [], TASKS = [], DECISIONS = [], WORKDAYS = [], DEPS = [], TOOLS = [];
 
 async function loadAll() {
-  [PEOPLE, TASKS, DECISIONS, WORKDAYS, DEPS, TOOLS, PURCHASES, PAYMENTS] = await Promise.all([
-    People.list(), Tasks.list(), Decisions.list(), Workdays.list(), Workdays.dependencies(), Tools.list(), Purchases.list(), Payments.list(),
+  [PEOPLE, TASKS, DECISIONS, WORKDAYS, DEPS, TOOLS] = await Promise.all([
+    People.list(), Tasks.list(), Decisions.list(), Workdays.list(), Workdays.dependencies(), Tools.list(),
   ]);
 }
 
@@ -95,17 +94,10 @@ function renderDetail(personId) {
     w.status !== "Gereed" && (w.presentPeople.some((p) => p.id === personId) || w.tasks.some((t) => t.people.some((p) => p.id === personId)))
   );
   const responsibleTools = TOOLS.filter((t) => t.responsible_person_id === personId);
-  const finance = computePersonFinance(personId, TASKS, PURCHASES, PAYMENTS);
 
   root.innerHTML = `
     <a href="personen.html" class="btn-secondary" style="display:inline-block;margin-bottom:18px;">← Terug naar personen</a>
     <h2 style="margin-bottom:20px;">${escapeHtml(person.name)}</h2>
-
-    <div class="stat-row" style="margin-bottom:24px;">
-      <div class="stat-card"><div class="n">${euro(finance.responsibleFor)}</div><div class="l">Budgetverantwoordelijk voor</div></div>
-      <div class="stat-card"><div class="n">${euro(finance.paidBySelf)}</div><div class="l">Zelf betaald</div></div>
-      <div class="stat-card"><div class="n">${euro(finance.outstanding)}</div><div class="l">Openstaande inkopen</div></div>
-    </div>
 
     <h3 style="font-size:1rem;margin-bottom:10px;">Komende werkzaamheden</h3>
     ${upcomingTasks.length ? `<ul class="plain-list">${upcomingTasks.map((t) => `
@@ -124,10 +116,6 @@ function renderDetail(personId) {
     <h3 style="font-size:1rem;margin:24px 0 10px;">Gereedschap waarvoor verantwoordelijk</h3>
     ${responsibleTools.length ? `<ul class="plain-list">${responsibleTools.map((t) => `<li>${escapeHtml(t.name)}</li>`).join("")}</ul>`
       : '<p class="empty-state">Geen gereedschap gekoppeld.</p>'}
-
-    <h3 style="font-size:1rem;margin:24px 0 10px;">Openstaande inkopen</h3>
-    ${finance.outstandingPurchases.length ? `<ul class="plain-list">${finance.outstandingPurchases.map((p) => `<li>${escapeHtml(p.product)} — ${euro(p.committed_cost ?? p.estimated_cost ?? 0)}</li>`).join("")}</ul>`
-      : '<p class="empty-state">Geen openstaande inkopen.</p>'}
   `;
 }
 
