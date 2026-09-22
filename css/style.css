@@ -719,8 +719,22 @@ footer { font-family: var(--font-ui); }
 /* ---------- Personen: klikbare rij ---------- */
 .person-open-link { cursor: pointer; }
 
+/* ---------- Planning: fases ---------- */
+.phase-block {
+  border-left: 4px solid var(--accent);
+  padding-left: 18px;
+  margin-bottom: 34px;
+}
+.phase-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 14px; }
+.phase-head h2 { font-size: 1.2rem; margin: 0 0 4px; }
+.phase-desc { margin: 0 0 6px; color: var(--text-muted); font-size: 0.88rem; }
+.phase-budget-line { font-family: var(--font-ui); font-size: 0.78rem; color: var(--text-muted); }
+.phase-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+.phase-actions button:disabled { opacity: 0.35; cursor: default; }
+
 @media (max-width: 760px) {
   .form-grid { grid-template-columns: 1fr; }
   .modal-panel { padding: 18px; }
   .lightbox-nav { width: 40px; height: 40px; font-size: 1.3rem; }
+  .phase-block { padding-left: 12px; }
 }

@@ -1,6 +1,6 @@
 // Verbouwplan Leliestraat 27 — CRUD-helpers per tabel.
 // Eén bron per soort data; elke pagina haalt hier dezelfde records vandaan.
-import { getSupabase } from "./supabase-client.js?v=2";
+import { getSupabase } from "./supabase-client.js?v=3";
 
 async function listAll(table, { select = "*", order } = {}) {
   const supabase = await getSupabase();
@@ -91,6 +91,13 @@ export const RoomImages = {
   remove: (id) => deleteRow("room_images", id),
 };
 
+export const Phases = {
+  list: () => listAll("phases", { order: { column: "sort_order" } }),
+  create: (row) => insertRow("phases", row),
+  update: (id, patch) => updateRow("phases", id, patch),
+  remove: (id) => deleteRow("phases", id),
+};
+
 export const Workdays = {
   list: async () => {
     const rows = await listAll("workdays", { select: "*, workday_persons(people(id,name))", order: { column: "sort_order" } });
@@ -111,10 +118,10 @@ export const Workdays = {
 export const Tasks = {
   list: async () => {
     const rows = await listAll("tasks", {
-      select: "*, rooms(id,name,slug), workdays(id,number), task_persons(people(id,name))",
+      select: "*, rooms(id,name,slug), workdays(id,number), phases(id,name,color), task_persons(people(id,name)), task_budget_responsibles(people(id,name))",
       order: { column: "sort_order" },
     });
-    return withPeople(rows, "task_persons");
+    return withPeople(withPeople(rows, "task_persons"), "task_budget_responsibles", "budgetResponsible");
   },
   create: (row) => insertRow("tasks", row),
   update: (id, patch) => updateRow("tasks", id, patch),
@@ -123,6 +130,7 @@ export const Tasks = {
   bulkRemove: (ids) => bulkDeleteRows("tasks", ids),
   setPersons: (taskId, personIds) => setLinks("task_persons", "task_id", taskId, "person_id", personIds),
   addPersonToMany: (taskIds, personId) => addLinkToMany("task_persons", "task_id", taskIds, "person_id", personId),
+  setBudgetResponsibles: (taskId, personIds) => setLinks("task_budget_responsibles", "task_id", taskId, "person_id", personIds),
   materialsFor: async (taskId) => {
     const supabase = await getSupabase();
     const { data, error } = await supabase.from("task_materials").select("materials(*)").eq("task_id", taskId);
@@ -183,21 +191,68 @@ export const Tools = {
   },
 };
 
-export const Actions = {
+export const Decisions = {
   list: async () => {
-    const rows = await listAll("actions", {
-      select: "*, action_persons(people(id,name)), workdays(id,number)",
+    const rows = await listAll("decisions", {
+      select: "*, phases(id,name,color), rooms(id,name), decision_persons(people(id,name)), decision_tasks(tasks(id,title))",
       order: { column: "sort_order" },
     });
-    return withPeople(rows, "action_persons");
+    return withPeople(rows, "decision_persons").map((d) => ({ ...d, tasks: (d.decision_tasks || []).map((j) => j.tasks).filter(Boolean) }));
   },
-  create: (row) => insertRow("actions", row),
-  update: (id, patch) => updateRow("actions", id, patch),
-  remove: (id) => deleteRow("actions", id),
-  bulkUpdate: (ids, patch) => bulkUpdateRows("actions", ids, patch),
-  bulkRemove: (ids) => bulkDeleteRows("actions", ids),
-  setPersons: (actionId, personIds) => setLinks("action_persons", "action_id", actionId, "person_id", personIds),
-  addPersonToMany: (actionIds, personId) => addLinkToMany("action_persons", "action_id", actionIds, "person_id", personId),
+  create: (row) => insertRow("decisions", row),
+  update: (id, patch) => updateRow("decisions", id, patch),
+  remove: (id) => deleteRow("decisions", id),
+  setPersons: (decisionId, personIds) => setLinks("decision_persons", "decision_id", decisionId, "person_id", personIds),
+  setTasks: (decisionId, taskIds) => setLinks("decision_tasks", "decision_id", decisionId, "task_id", taskIds),
+};
+
+export const Quotes = {
+  list: async () => {
+    const rows = await listAll("quotes", {
+      select: "*, phases(id,name,color), budget_categories(id,name), quote_persons(people(id,name)), quote_tasks(tasks(id,title))",
+      order: { column: "sort_order" },
+    });
+    return withPeople(rows, "quote_persons").map((q) => ({ ...q, tasks: (q.quote_tasks || []).map((j) => j.tasks).filter(Boolean) }));
+  },
+  create: (row) => insertRow("quotes", row),
+  update: (id, patch) => updateRow("quotes", id, patch),
+  remove: (id) => deleteRow("quotes", id),
+  setPersons: (quoteId, personIds) => setLinks("quote_persons", "quote_id", quoteId, "person_id", personIds),
+  setTasks: (quoteId, taskIds) => setLinks("quote_tasks", "quote_id", quoteId, "task_id", taskIds),
+};
+
+export const Purchases = {
+  list: () => listAll("purchases", {
+    select: "*, rooms(id,name), phases(id,name,color), tasks(id,title), budget_categories(id,name), quotes(id,supplier)",
+    order: { column: "sort_order" },
+  }),
+  create: (row) => insertRow("purchases", row),
+  update: (id, patch) => updateRow("purchases", id, patch),
+  remove: (id) => deleteRow("purchases", id),
+  bulkUpdate: (ids, patch) => bulkUpdateRows("purchases", ids, patch),
+  bulkRemove: (ids) => bulkDeleteRows("purchases", ids),
+};
+
+export const Payments = {
+  list: () => listAll("payments", { select: "*, people(id,name)", order: { column: "payment_date" } }),
+  create: (row) => insertRow("payments", row),
+  update: (id, patch) => updateRow("payments", id, patch),
+  remove: (id) => deleteRow("payments", id),
+};
+
+export const Budgets = {
+  get: async () => {
+    const rows = await listAll("budgets");
+    return rows[0] || null;
+  },
+  update: (id, patch) => updateRow("budgets", id, patch),
+};
+
+export const BudgetCategories = {
+  list: () => listAll("budget_categories", { order: { column: "sort_order" } }),
+  create: (row) => insertRow("budget_categories", row),
+  update: (id, patch) => updateRow("budget_categories", id, patch),
+  remove: (id) => deleteRow("budget_categories", id),
 };
 
 export const Risks = {
@@ -230,11 +285,4 @@ export const TaskTools = {
     if (error) throw error;
     return data;
   },
-};
-
-export const Budget = {
-  list: () => listAll("budget_items", { order: { column: "sort_order" } }),
-  create: (row) => insertRow("budget_items", row),
-  update: (id, patch) => updateRow("budget_items", id, patch),
-  remove: (id) => deleteRow("budget_items", id),
 };

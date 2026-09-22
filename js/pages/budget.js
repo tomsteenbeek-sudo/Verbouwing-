@@ -1,138 +1,135 @@
-import { Budget } from "../db.js?v=2";
-import { renderNav, euro, escapeHtml, reportError, toast, openModal, closeModal, confirmDialog } from "../ui.js?v=2";
+import { Budgets, BudgetCategories, Tasks, Purchases, Phases } from "../db.js?v=3";
+import { renderNav, euro, escapeHtml, reportError, toast, openModal, closeModal, confirmDialog } from "../ui.js?v=3";
+import { computeRollup, computeTotalSummary } from "../finance.js?v=3";
 
 renderNav();
 document.getElementById("year").textContent = new Date().getFullYear();
 
-const TARGET = 30000;
-const CATEGORIES = ["Verduurzaming", "Regulier", "Onvoorzien"];
-let ITEMS = [];
+let BUDGET = null, CATEGORIES = [], TASKS = [], PURCHASES = [], PHASES = [];
 
-async function load() { ITEMS = await Budget.list(); }
+async function loadAll() {
+  [BUDGET, CATEGORIES, TASKS, PURCHASES, PHASES] = await Promise.all([
+    Budgets.get(), BudgetCategories.list(), Tasks.list(), Purchases.list(), Phases.list(),
+  ]);
+}
 
 async function render() {
   const root = document.getElementById("budget-root");
   try {
-    await load();
-    const begrootTotal = ITEMS.reduce((s, i) => s + Number(i.budgeted || 0), 0);
-    const werkelijkTotal = ITEMS.reduce((s, i) => s + Number(i.actual || 0), 0);
+    await loadAll();
+    const summary = computeTotalSummary(BUDGET, CATEGORIES, PURCHASES);
+    const warnings = buildWarnings(summary);
 
     root.innerHTML = `
-      <div class="two-col" style="margin-bottom:28px;">
-        <div class="card pad">
-          <div class="budget-bar-row"><div class="label">Doel</div><div></div><div class="amt"><strong>${euro(TARGET)}</strong></div></div>
-          <div class="budget-bar-row"><div class="label">Begroot totaal</div><div></div><div class="amt"><strong>${euro(begrootTotal)}</strong></div></div>
-          <div class="budget-bar-row"><div class="label">Werkelijk uitgegeven</div><div></div><div class="amt"><strong>${euro(werkelijkTotal)}</strong></div></div>
-          <div class="note ${werkelijkTotal > TARGET ? "warn" : ""}">${werkelijkDelta(werkelijkTotal)}</div>
-        </div>
-        <div class="card pad">
-          ${CATEGORIES.map((cat) => {
-            const sub = ITEMS.filter((i) => i.category === cat).reduce((s, i) => s + Number(i.budgeted || 0), 0);
-            const pct = TARGET ? Math.round((sub / TARGET) * 100) : 0;
-            return `<div class="budget-bar-row"><div class="label">${cat}</div><div class="budget-bar-track"><div class="budget-bar-fill reg" style="width:${Math.min(100, pct)}%">${pct}%</div></div><div class="amt">${euro(sub)}</div></div>`;
-          }).join("")}
-        </div>
+      <div class="card pad" style="margin-bottom:24px;">
+        <div class="budget-bar-row"><div class="label">Vastgesteld budget</div><div></div><div class="amt"><span class="euro-input"><span class="prefix">€</span><input type="number" step="10" id="total-budget-input" class="inline-input num-input" value="${summary.totalBudget}"></span></div></div>
+        <div class="budget-bar-row"><div class="label">Toebedeeld</div><div></div><div class="amt">${euro(summary.allocated)}</div></div>
+        <div class="budget-bar-row"><div class="label">Nog te verdelen</div><div></div><div class="amt">${euro(summary.unallocated)}</div></div>
+        <div class="budget-bar-row"><div class="label">Verplicht</div><div></div><div class="amt">${euro(summary.committed)}</div></div>
+        <div class="budget-bar-row"><div class="label">Betaald</div><div></div><div class="amt">${euro(summary.paid)}</div></div>
+        <div class="budget-bar-row"><div class="label"><strong>Nog beschikbaar</strong></div><div></div><div class="amt"><strong>${euro(summary.available)}</strong></div></div>
       </div>
-      ${CATEGORIES.map((cat) => budgetSectionHtml(cat)).join("")}
+      ${warnings.length ? `<ul class="warning-list" style="margin-bottom:24px;">${warnings.map((w) => `<li class="warning-item"><span class="icon">${w.icon}</span><span>${escapeHtml(w.text)}</span></li>`).join("")}</ul>` : ""}
+      <div class="table-scroll">
+        <table>
+          <thead><tr><th>Categorie</th><th>Budget</th><th>Toebedeeld</th><th>Verplicht</th><th>Betaald</th><th>Resterend</th><th></th></tr></thead>
+          <tbody>${CATEGORIES.map(categoryRowHtml).join("")}</tbody>
+        </table>
+      </div>
     `;
     wireInputs();
-    wireRowButtons();
   } catch (err) {
     reportError(err, "het laden van het budget");
     root.innerHTML = `<p class="empty-state">Kon het budget niet laden.</p>`;
   }
 }
 
-function werkelijkDelta(werkelijk) {
-  const diff = werkelijk - TARGET;
-  if (werkelijk === 0) return "Nog niets ingevuld als werkelijk uitgegeven.";
-  if (diff > 0) return `${euro(diff)} boven het doel van ${euro(TARGET)}.`;
-  return `${euro(-diff)} onder het doel van ${euro(TARGET)} — nog ${euro(TARGET - werkelijk)} over.`;
+function buildWarnings(summary) {
+  const warnings = [];
+  if (summary.allocated > summary.totalBudget) {
+    warnings.push({ icon: "🔴", text: `Budgetoverschrijding: ${euro(summary.allocated - summary.totalBudget)} meer toebedeeld dan vastgesteld.` });
+  }
+  if (summary.unallocated > 0) {
+    warnings.push({ icon: "🟠", text: `${euro(summary.unallocated)} van het totaalbudget nog niet verdeeld.` });
+  }
+  CATEGORIES.forEach((cat) => {
+    const { committed } = computeRollup({ tasks: TASKS, purchases: PURCHASES, categoryId: cat.id });
+    const over = committed - Number(cat.allocated_budget || 0);
+    if (over > 0) warnings.push({ icon: "🔴", text: `${cat.name}: ${euro(over)} boven budget.` });
+  });
+  return warnings;
 }
 
-function budgetSectionHtml(cat) {
-  const rows = ITEMS.filter((i) => i.category === cat);
-  const subBegroot = rows.reduce((s, i) => s + Number(i.budgeted || 0), 0);
-  const subWerkelijk = rows.reduce((s, i) => s + Number(i.actual || 0), 0);
+function categoryRowHtml(cat) {
+  const { assigned, committed, paid } = computeRollup({ tasks: TASKS, purchases: PURCHASES, categoryId: cat.id });
+  const remaining = Number(cat.allocated_budget || 0) - committed;
+  const pct = cat.allocated_budget ? Math.min(100, Math.round((committed / cat.allocated_budget) * 100)) : 0;
   return `
-    <h3 style="font-size:0.98rem;margin-top:26px;">${cat}</h3>
-    <div class="table-scroll">
-      <table>
-        <thead><tr><th>Post</th><th>Begroot</th><th>Werkelijk</th><th>Uitvoering</th><th></th></tr></thead>
-        <tbody>
-          ${rows.map((r) => `
-            <tr data-id="${r.id}">
-              <td>${escapeHtml(r.post)}</td>
-              <td class="num"><span class="euro-input"><span class="prefix">€</span><input type="number" class="inline-input num-input budget-input" min="0" step="10" data-field="budgeted" value="${r.budgeted}"></span></td>
-              <td class="num"><span class="euro-input"><span class="prefix">€</span><input type="number" class="inline-input num-input budget-input" min="0" step="10" data-field="actual" value="${r.actual || ""}" placeholder="0"></span></td>
-              <td>${escapeHtml(r.execution_note || "")}</td>
-              <td><button type="button" class="btn-icon budget-delete-btn">✕</button></td>
-            </tr>`).join("")}
-          <tr><td><strong>Subtotaal</strong></td><td class="num"><strong>${euro(subBegroot)}</strong></td><td class="num"><strong>${euro(subWerkelijk)}</strong></td><td></td><td></td></tr>
-        </tbody>
-      </table>
-    </div>
-    <button type="button" class="btn-secondary add-budget-row-btn" data-cat="${cat}" style="margin-top:10px;">+ Post toevoegen aan ${cat}</button>`;
+    <tr data-id="${cat.id}">
+      <td>${escapeHtml(cat.name)}</td>
+      <td class="num"><span class="euro-input"><span class="prefix">€</span><input type="number" step="10" class="inline-input num-input category-budget-input" value="${cat.allocated_budget}"></span></td>
+      <td class="num">${euro(assigned)}</td>
+      <td class="num">${euro(committed)}<div class="mini-progress" style="margin-top:4px;"><i style="width:${pct}%"></i></div></td>
+      <td class="num">${euro(paid)}</td>
+      <td class="num ${remaining < 0 ? "warn" : ""}">${euro(remaining)}</td>
+      <td><button type="button" class="btn-icon category-delete-btn">✕</button></td>
+    </tr>`;
 }
 
 function wireInputs() {
-  document.querySelectorAll(".budget-input").forEach((input) => {
+  document.getElementById("total-budget-input").addEventListener("change", async (e) => {
+    try {
+      await Budgets.update(BUDGET.id, { total_budget: Number(e.target.value) || 0 });
+      toast("Budget bijgewerkt.");
+      render();
+    } catch (err) { reportError(err, "bijwerken budget"); }
+  });
+  document.querySelectorAll(".category-budget-input").forEach((input) => {
     input.addEventListener("change", async (e) => {
       const id = e.target.closest("tr").dataset.id;
-      const field = e.target.dataset.field;
       try {
-        await Budget.update(id, { [field]: e.target.value ? Number(e.target.value) : 0 });
+        await BudgetCategories.update(id, { allocated_budget: Number(e.target.value) || 0 });
         render();
-      } catch (err) { reportError(err, "bijwerken budgetregel"); }
+      } catch (err) { reportError(err, "bijwerken categorie"); }
     });
   });
-}
-
-function wireRowButtons() {
-  document.querySelectorAll(".budget-delete-btn").forEach((btn) => {
+  document.querySelectorAll(".category-delete-btn").forEach((btn) => {
     btn.addEventListener("click", async (e) => {
       const id = e.target.closest("tr").dataset.id;
-      const ok = await confirmDialog("Deze budgetregel verwijderen?");
+      const cat = CATEGORIES.find((c) => c.id === id);
+      const ok = await confirmDialog(`Categorie "${cat.name}" verwijderen? Gekoppelde werkzaamheden en inkopen verliezen alleen deze koppeling.`);
       if (!ok) return;
-      try { await Budget.remove(id); toast("Verwijderd."); render(); }
+      try { await BudgetCategories.remove(id); toast("Categorie verwijderd."); render(); }
       catch (err) { reportError(err, "verwijderen"); }
     });
   });
-  document.querySelectorAll(".add-budget-row-btn").forEach((btn) => {
-    btn.addEventListener("click", () => openBudgetRowForm(btn.dataset.cat));
-  });
 }
 
-function openBudgetRowForm(category) {
-  const overlay = openModal(`Post toevoegen aan ${category}`, `
-    <form id="budget-row-form">
-      <div class="form-field full"><label>Omschrijving</label><input type="text" name="post" required></div>
-      <div class="form-grid">
-        <div class="form-field"><label>Begroot (€)</label><input type="number" name="budgeted" step="10" value="0"></div>
-        <div class="form-field"><label>Uitvoering</label><input type="text" name="execution_note" placeholder="bv. Zelf, Uitbesteed"></div>
-      </div>
+document.getElementById("add-category-btn").addEventListener("click", () => {
+  const overlay = openModal("Nieuwe budgetcategorie", `
+    <form id="category-form">
+      <div class="form-field full"><label>Naam</label><input type="text" name="name" required></div>
+      <div class="form-field full"><label>Vastgesteld budget (€)</label><input type="number" step="10" name="allocated_budget" value="0"></div>
       <div class="modal-actions">
-        <button type="button" class="btn-secondary" id="budget-row-cancel-btn">Annuleren</button>
+        <button type="button" class="btn-secondary" id="category-cancel-btn">Annuleren</button>
         <button type="submit" class="btn-primary">Toevoegen</button>
       </div>
     </form>`);
-  overlay.querySelector("#budget-row-cancel-btn").addEventListener("click", closeModal);
-  overlay.querySelector("#budget-row-form").addEventListener("submit", async (e) => {
+  overlay.querySelector("#category-cancel-btn").addEventListener("click", closeModal);
+  overlay.querySelector("#category-form").addEventListener("submit", async (e) => {
     e.preventDefault();
     const fd = new FormData(e.target);
     try {
-      await Budget.create({
-        category,
-        post: fd.get("post").trim(),
-        budgeted: Number(fd.get("budgeted") || 0),
-        execution_note: fd.get("execution_note") || null,
-        sort_order: ITEMS.filter((i) => i.category === category).length + 1,
+      await BudgetCategories.create({
+        name: fd.get("name").trim(),
+        allocated_budget: Number(fd.get("allocated_budget") || 0),
+        sort_order: CATEGORIES.length + 1,
       });
-      toast("Post toegevoegd.");
+      toast("Categorie toegevoegd.");
       closeModal();
       render();
-    } catch (err) { reportError(err, "toevoegen"); }
+    } catch (err) { reportError(err, "toevoegen categorie"); }
   });
-}
+});
 
 render();
