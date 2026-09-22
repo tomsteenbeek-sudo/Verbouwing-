@@ -313,7 +313,7 @@ h1, h2, h3, h4 { font-family: var(--font-display); font-weight: 600; line-height
 .action-list input[type=checkbox] { margin-top: 3px; width: 17px; height: 17px; accent-color: var(--accent); flex-shrink: 0; cursor: pointer; }
 .action-list label { cursor: pointer; flex: 1; }
 .action-list li.checked label { color: var(--text-muted); text-decoration: line-through; }
-.action-list li.empty-hint { color: var(--text-muted); font-size: 0.86rem; font-style: italic; padding: 6px 0; }
+.action-list li.empty-hint, p.empty-hint { color: var(--text-muted); font-size: 0.86rem; font-style: italic; padding: 6px 0; }
 .action-list .item-delete {
   flex-shrink: 0; border: none; background: none; color: var(--text-muted);
   cursor: pointer; font-size: 0.8rem; padding: 2px 6px; border-radius: 50%;
