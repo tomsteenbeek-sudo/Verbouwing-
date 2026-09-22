@@ -1,5 +1,5 @@
-import { Tools, TaskTools, People } from "../db.js?v=3";
-import { renderNav, escapeHtml, reportError, toast, openModal, closeModal, confirmDialog, optionsHtml } from "../ui.js?v=3";
+import { Tools, TaskTools, People } from "../db.js?v=4";
+import { renderNav, escapeHtml, reportError, toast, openModal, closeModal, confirmDialog, optionsHtml } from "../ui.js?v=4";
 
 renderNav();
 document.getElementById("year").textContent = new Date().getFullYear();

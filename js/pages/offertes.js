@@ -1,5 +1,5 @@
-import { Quotes, Purchases, Phases, BudgetCategories, People, Tasks } from "../db.js?v=3";
-import { renderNav, escapeHtml, reportError, toast, openModal, closeModal, confirmDialog, checkboxListHtml, peopleBadgesHtml, optionsHtml, euro } from "../ui.js?v=3";
+import { Quotes, Purchases, Phases, BudgetCategories, People, Tasks } from "../db.js?v=4";
+import { renderNav, escapeHtml, reportError, toast, openModal, closeModal, confirmDialog, checkboxListHtml, peopleBadgesHtml, optionsHtml, euro } from "../ui.js?v=4";
 
 renderNav();
 document.getElementById("year").textContent = new Date().getFullYear();
@@ -48,7 +48,7 @@ function quoteRowHtml(q) {
       <div class="actie-body">
         <div class="actie-title">${escapeHtml(q.supplier)} <span class="pill ${q.status === "Akkoord" ? "gedaan" : q.status === "Afgewezen" ? "open" : "bezig"}">${escapeHtml(q.status)}</span></div>
         <div class="actie-meta">
-          ${q.amount != null ? `<span class="meta-item">${euro(q.amount)}</span>` : ""}
+          <span class="meta-item">Materiaal ${euro(q.material_amount || 0)} · Arbeid ${euro(q.labor_amount || 0)} · Totaal ${euro((Number(q.material_amount) || 0) + (Number(q.labor_amount) || 0))}</span>
           ${q.phases ? `<span class="meta-item" style="color:${q.phases.color};">${escapeHtml(q.phases.name)}</span>` : ""}
           ${q.budget_categories ? `<span class="meta-item">${escapeHtml(q.budget_categories.name)}</span>` : ""}
         </div>
@@ -87,14 +87,15 @@ function wireRows(root) {
         await Purchases.create({
           product: quote.description || quote.supplier,
           supplier: quote.supplier,
-          committed_cost: quote.amount,
+          estimated_material_cost: quote.material_amount,
+          estimated_labor_cost: quote.labor_amount,
           status: "Besteld",
           phase_id: quote.phase_id,
           budget_category_id: quote.budget_category_id,
           task_id: quote.tasks[0]?.id || null,
           quote_id: quote.id,
         });
-        toast("Omgezet naar inkoop — bedrag telt vanaf nu als verplicht.");
+        toast("Omgezet naar inkoop — het bedrag telt vanaf nu mee in Budget via Inkopen.");
         render();
       } catch (err) { reportError(err, "omzetten naar inkoop"); }
     });
@@ -102,7 +103,7 @@ function wireRows(root) {
 }
 
 function openQuoteForm(quote) {
-  const q = quote || { supplier: "", description: "", category: "", amount: "", requested_date: "", received_date: "", valid_until: "", status: "Nog aanvragen", document_url: "", notes: "", phase_id: "", budget_category_id: "" };
+  const q = quote || { supplier: "", description: "", category: "", material_amount: "", labor_amount: "", requested_date: "", received_date: "", valid_until: "", status: "Nog aanvragen", document_url: "", notes: "", phase_id: "", budget_category_id: "" };
   const selectedPersonIds = (quote ? quote.people : []).map((p) => p.id);
   const selectedTaskIds = (quote ? quote.tasks : []).map((t) => t.id);
   const overlay = openModal(quote ? "Offerte bewerken" : "Nieuwe offerte", `
@@ -111,7 +112,8 @@ function openQuoteForm(quote) {
       <div class="form-field full"><label>Omschrijving</label><input type="text" name="description" value="${escapeHtml(q.description || "")}"></div>
       <div class="form-grid">
         <div class="form-field"><label>Categorie (vrije tekst)</label><input type="text" name="category" value="${escapeHtml(q.category || "")}"></div>
-        <div class="form-field"><label>Bedrag</label><input type="number" step="0.01" name="amount" value="${q.amount ?? ""}"></div>
+        <div class="form-field"><label>Materiaal (€)</label><input type="number" step="0.01" name="material_amount" value="${q.material_amount ?? ""}"></div>
+        <div class="form-field"><label>Arbeid (€)</label><input type="number" step="0.01" name="labor_amount" value="${q.labor_amount ?? ""}"></div>
         <div class="form-field"><label>Status</label><select name="status">${STATUSES.map((s) => `<option value="${s}" ${s === q.status ? "selected" : ""}>${s}</option>`).join("")}</select></div>
         <div class="form-field"><label>Fase</label><select name="phase_id">${optionsHtml(PHASES, q.phase_id, { empty: "Geen fase" })}</select></div>
         <div class="form-field"><label>Budgetcategorie</label><select name="budget_category_id">${optionsHtml(CATEGORIES, q.budget_category_id, { empty: "Geen categorie" })}</select></div>
@@ -145,7 +147,8 @@ function openQuoteForm(quote) {
       supplier: fd.get("supplier").trim(),
       description: fd.get("description") || null,
       category: fd.get("category") || null,
-      amount: fd.get("amount") ? Number(fd.get("amount")) : null,
+      material_amount: fd.get("material_amount") ? Number(fd.get("material_amount")) : null,
+      labor_amount: fd.get("labor_amount") ? Number(fd.get("labor_amount")) : null,
       status: fd.get("status"),
       phase_id: fd.get("phase_id") || null,
       budget_category_id: fd.get("budget_category_id") || null,

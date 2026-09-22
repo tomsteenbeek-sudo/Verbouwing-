@@ -1,26 +1,26 @@
-import { Rooms, RoomImages, Workdays, People, Tasks, Materials, Phases, BudgetCategories, Purchases } from "../db.js?v=3";
-import { renderNav, escapeHtml, reportError, toast, openModal, closeModal, confirmDialog } from "../ui.js?v=3";
-import { taskCardHtml, wireTaskCards, openTaskForm, TASK_STATUSES } from "../task-shared.js?v=3";
-import { renderBulkBar, wireSelectCheckboxes } from "../bulk.js?v=3";
-import { openLightbox } from "../lightbox.js?v=3";
+import { Rooms, RoomImages, Workdays, People, Tasks, Materials, Phases } from "../db.js?v=4";
+import { renderNav, escapeHtml, reportError, toast, openModal, closeModal, confirmDialog } from "../ui.js?v=4";
+import { taskCardHtml, wireTaskCards, openTaskForm, TASK_STATUSES } from "../task-shared.js?v=4";
+import { renderBulkBar, wireSelectCheckboxes } from "../bulk.js?v=4";
+import { openLightbox } from "../lightbox.js?v=4";
+import { activeTasks } from "../domain.js?v=4";
 
 renderNav();
 document.getElementById("year").textContent = new Date().getFullYear();
 
 const FLOOR_LABELS = { "begane-grond": "Begane grond", "verdieping": "Verdieping", "buiten": "Buiten" };
-let ROOMS = [], IMAGES = [], WORKDAYS = [], PEOPLE = [], TASKS = [], MATERIALS = [], PHASES = [], CATEGORIES = [], PURCHASES = [];
+let ROOMS = [], IMAGES = [], WORKDAYS = [], PEOPLE = [], TASKS = [], MATERIALS = [], PHASES = [];
 let currentFloor = "alle";
 const selectedTaskIds = new Set();
 
 async function loadAll() {
-  [ROOMS, IMAGES, WORKDAYS, PEOPLE, TASKS, MATERIALS, PHASES, CATEGORIES, PURCHASES] = await Promise.all([
-    Rooms.list(), RoomImages.list(), Workdays.list(), People.list(), Tasks.list(), Materials.list(),
-    Phases.list(), BudgetCategories.list(), Purchases.list(),
+  [ROOMS, IMAGES, WORKDAYS, PEOPLE, TASKS, MATERIALS, PHASES] = await Promise.all([
+    Rooms.list(), RoomImages.list(), Workdays.list(), People.list(), Tasks.list(), Materials.list(), Phases.list(),
   ]);
 }
 
 function taskCtx() {
-  return { rooms: ROOMS, workdays: WORKDAYS, people: PEOPLE, phases: PHASES, budgetCategories: CATEGORIES, onChange: render };
+  return { rooms: ROOMS, workdays: WORKDAYS, people: PEOPLE, phases: PHASES, onChange: render };
 }
 
 function imagesFor(roomId, type) {
@@ -64,7 +64,7 @@ function renderGrid() {
   const grid = document.getElementById("room-grid");
   const rooms = ROOMS.filter((r) => currentFloor === "alle" || r.floor === currentFloor);
   grid.innerHTML = rooms.map((r) => {
-    const tasks = TASKS.filter((t) => t.room_id === r.id);
+    const tasks = activeTasks(TASKS.filter((t) => t.room_id === r.id), PHASES);
     const done = tasks.filter((t) => t.status === "Gereed").length;
     const pct = tasks.length ? Math.round((done / tasks.length) * 100) : 0;
     const cover = coverImageFor(r.id);
@@ -105,7 +105,7 @@ function imageGalleryHtml(images, sectionClass) {
 function renderDetail(slug) {
   const room = ROOMS.find((r) => r.slug === slug);
   if (!room) { document.getElementById("kamers-root").innerHTML = `<p class="empty-state">Kamer niet gevonden.</p>`; return; }
-  const tasks = TASKS.filter((t) => t.room_id === room.id);
+  const tasks = activeTasks(TASKS.filter((t) => t.room_id === room.id), PHASES);
   const materials = MATERIALS.filter((m) => m.room_id === room.id);
   const desired = imagesFor(room.id, "desired");
   const current = imagesFor(room.id, "current");
@@ -130,7 +130,7 @@ function renderDetail(slug) {
       <h3 style="margin:0;font-size:1rem;">Werkzaamheden</h3>
       <button class="btn-primary" id="add-task-btn">+ Werkzaamheid</button>
     </div>
-    <div id="task-list">${tasks.length ? tasks.map((t) => taskCardHtml(t, { showRoom: false, purchases: PURCHASES, selectable: true })).join("") : '<p class="empty-state">Nog geen werkzaamheden voor deze kamer.</p>'}</div>
+    <div id="task-list">${tasks.length ? tasks.map((t) => taskCardHtml(t, { showRoom: false, selectable: true })).join("") : '<p class="empty-state">Nog geen werkzaamheden voor deze kamer.</p>'}</div>
 
     ${materials.length ? `
     <h3 style="font-size:1rem;margin:24px 0 10px;">Materialen voor deze kamer</h3>

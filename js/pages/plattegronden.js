@@ -1,5 +1,5 @@
-import { renderNav } from "../ui.js?v=3";
-import { openLightbox } from "../lightbox.js?v=3";
+import { renderNav } from "../ui.js?v=4";
+import { openLightbox } from "../lightbox.js?v=4";
 
 renderNav();
 document.getElementById("year").textContent = new Date().getFullYear();

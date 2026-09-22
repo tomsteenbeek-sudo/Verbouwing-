@@ -1,7 +1,7 @@
-import { Workdays, Tasks, Decisions, Quotes, Materials, TaskMaterials, Budgets, BudgetCategories, Purchases } from "../db.js?v=3";
-import { renderNav, escapeHtml, reportError, euro } from "../ui.js?v=3";
-import { decorateWorkdays, nextUpcomingWorkday, prerequisiteWarning, formatDate } from "../domain.js?v=3";
-import { computeTotalSummary, computeRollup } from "../finance.js?v=3";
+import { Workdays, Tasks, Decisions, Quotes, Materials, TaskMaterials, Budgets, BudgetCategories, Purchases, Phases } from "../db.js?v=4";
+import { renderNav, escapeHtml, reportError, euro } from "../ui.js?v=4";
+import { decorateWorkdays, nextUpcomingWorkday, prerequisiteWarning, formatDate, activeTasks, BUITEN_SCOPE_PHASE_NAME } from "../domain.js?v=4";
+import { computeTotalSummary, computeRollup } from "../finance.js?v=4";
 
 renderNav();
 document.getElementById("year").textContent = new Date().getFullYear();
@@ -9,17 +9,20 @@ document.getElementById("year").textContent = new Date().getFullYear();
 async function init() {
   const root = document.getElementById("dash-root");
   try {
-    const [workdays, deps, tasks, decisions, quotes, materials, taskMaterials, budget, categories, purchases] = await Promise.all([
+    const [workdays, deps, allTasks, decisions, quotes, materials, taskMaterials, budget, categories, purchases, phases] = await Promise.all([
       Workdays.list(), Workdays.dependencies(), Tasks.list(), Decisions.list(), Quotes.list(),
-      Materials.list(), TaskMaterials.listAll(), Budgets.get(), BudgetCategories.list(), Purchases.list(),
+      Materials.list(), TaskMaterials.listAll(), Budgets.get(), BudgetCategories.list(), Purchases.list(), Phases.list(),
     ]);
+    const buitenScopePhase = phases.find((p) => p.name === BUITEN_SCOPE_PHASE_NAME);
+    const tasks = activeTasks(allTasks, phases);
     const decorated = decorateWorkdays(workdays, tasks, deps);
     const next = nextUpcomingWorkday(decorated);
-    const summary = computeTotalSummary(budget, categories, purchases);
+    const summary = computeTotalSummary(budget, purchases);
 
     renderNextWorkday(next);
     renderVoortgang(tasks);
-    renderStats(decisions, quotes, materials);
+    renderStats(decisions, quotes, materials, allTasks, buitenScopePhase);
+    renderPhases(phases, tasks);
     renderBudget(summary);
     renderUpcoming(decorated);
     renderWarnings(decorated, next, decisions, taskMaterials, summary, categories, tasks, purchases);
@@ -49,10 +52,11 @@ function renderNextWorkday(next) {
     <a class="btn-primary" href="planning.html#dag-${next.number}">Open klusdag</a>`;
 }
 
-function renderStats(decisions, quotes, materials) {
+function renderStats(decisions, quotes, materials, allTasks, buitenScopePhase) {
   const openDecisions = decisions.filter((d) => d.status === "Open").length;
   const openQuotes = quotes.filter((q) => q.status !== "Akkoord" && q.status !== "Afgewezen").length;
   const toBuy = materials.filter((m) => m.status !== "In huis").length;
+  const buitenScopeCount = buitenScopePhase ? allTasks.filter((t) => t.phase_id === buitenScopePhase.id).length : 0;
 
   document.getElementById("stat-besluiten").innerHTML =
     `<div class="big">${openDecisions}</div><div class="sub">openstaande besluiten</div>`;
@@ -60,6 +64,8 @@ function renderStats(decisions, quotes, materials) {
     `<div class="big">${openQuotes}</div><div class="sub">lopende offertes</div>`;
   document.getElementById("stat-materialen").innerHTML =
     `<div class="big">${toBuy}</div><div class="sub">materialen nog te kopen</div>`;
+  document.getElementById("stat-buitenscope").innerHTML =
+    `<div class="big">${buitenScopeCount}</div><div class="sub"><a href="buiten-scope.html">buiten scope / later →</a></div>`;
 }
 
 function renderVoortgang(tasks) {
@@ -69,17 +75,31 @@ function renderVoortgang(tasks) {
     `<div class="big">${doneTasks} / ${totalTasks}</div><div class="sub">werkzaamheden gereed</div>`;
 }
 
+function renderPhases(phases, tasks) {
+  const activePhases = phases.filter((p) => p.name !== BUITEN_SCOPE_PHASE_NAME);
+  const el = document.getElementById("dash-phases");
+  if (!activePhases.length) {
+    el.innerHTML = `<p class="empty-state">Nog geen fases aangemaakt.</p>`;
+    return;
+  }
+  el.innerHTML = `<div class="stat-row">${activePhases.map((phase) => {
+    const phaseTasks = tasks.filter((t) => t.phase_id === phase.id);
+    const done = phaseTasks.filter((t) => t.status === "Gereed").length;
+    return `<div class="stat-card"><div class="n" style="color:${phase.color || "inherit"};">${done}/${phaseTasks.length}</div><div class="l">${escapeHtml(phase.name)}</div></div>`;
+  }).join("")}</div>`;
+}
+
 function renderBudget(summary) {
   document.getElementById("dash-budget").innerHTML = `
     <div class="stat-row">
       <div class="stat-card"><div class="n">${euro(summary.totalBudget)}</div><div class="l">Vastgesteld</div></div>
-      <div class="stat-card"><div class="n">${euro(summary.allocated)}</div><div class="l">Toebedeeld</div></div>
-      <div class="stat-card"><div class="n">${euro(summary.unallocated)}</div><div class="l">Nog te verdelen</div></div>
-      <div class="stat-card"><div class="n">${euro(summary.committed)}</div><div class="l">Verplicht</div></div>
-      <div class="stat-card"><div class="n">${euro(summary.paid)}</div><div class="l">Betaald</div></div>
-      <div class="stat-card"><div class="n">${euro(summary.available)}</div><div class="l">Beschikbaar</div></div>
+      <div class="stat-card"><div class="n">${euro(summary.estimatedTotal)}</div><div class="l">Begroot</div></div>
+      <div class="stat-card"><div class="n">${euro(summary.unallocated)}</div><div class="l">Nog beschikbaar tov begroot</div></div>
+      <div class="stat-card"><div class="n">${euro(summary.actualTotal)}</div><div class="l">Werkelijk uitgegeven</div></div>
+      <div class="stat-card"><div class="n">${euro(summary.available)}</div><div class="l">Resterend</div></div>
     </div>
-    <p style="font-size:0.82rem;margin:12px 0 0;"><a href="budget.html">Volledig budgetoverzicht →</a></p>`;
+    <p style="font-size:0.82rem;margin:12px 0 0;">Materiaal begroot ${euro(summary.estimatedMaterial)} · Arbeid begroot ${euro(summary.estimatedLabor)} · Materiaal werkelijk ${euro(summary.actualMaterial)} · Arbeid werkelijk ${euro(summary.actualLabor)}</p>
+    <p style="font-size:0.82rem;margin:6px 0 0;"><a href="budget.html">Volledig budgetoverzicht →</a></p>`;
 }
 
 function renderUpcoming(decorated) {
@@ -128,15 +148,15 @@ function renderWarnings(decorated, next, decisions, taskMaterials, summary, cate
       .forEach((d) => warnings.push(`Besluit "${d.title}" staat nog open en hoort bij de fase van klusdag ${next.number}.`));
   }
 
-  if (summary.allocated > summary.totalBudget) {
-    warnings.push(`Budgetoverschrijding: ${euro(summary.allocated - summary.totalBudget)} meer toebedeeld dan vastgesteld.`);
+  if (summary.estimatedTotal > summary.totalBudget) {
+    warnings.push(`Budgetoverschrijding: ${euro(summary.estimatedTotal - summary.totalBudget)} meer begroot dan vastgesteld.`);
   }
   if (summary.unallocated > 0) {
-    warnings.push(`${euro(summary.unallocated)} van het totaalbudget nog niet verdeeld.`);
+    warnings.push(`${euro(summary.unallocated)} van het totaalbudget nog niet toegewezen.`);
   }
   categories.forEach((cat) => {
-    const { committed } = computeRollup({ tasks, purchases, categoryId: cat.id });
-    const over = committed - Number(cat.allocated_budget || 0);
+    const { estimatedTotal } = computeRollup({ purchases, tasks, categoryId: cat.id });
+    const over = estimatedTotal - Number(cat.allocated_budget || 0);
     if (over > 0) warnings.push(`${cat.name}: ${euro(over)} boven budget.`);
   });
 

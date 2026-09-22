@@ -1,27 +1,27 @@
-import { Rooms, Workdays, People, Tasks, Tools, TaskMaterials, TaskTools, Phases, BudgetCategories, Purchases } from "../db.js?v=3";
-import { renderNav, escapeHtml, reportError, toast, openModal, closeModal, confirmDialog, statusPillClass, checkboxListHtml, euro } from "../ui.js?v=3";
-import { taskCardHtml, wireTaskCards, openTaskForm, TASK_STATUSES } from "../task-shared.js?v=3";
-import { decorateWorkdays, prerequisiteWarning, formatDate } from "../domain.js?v=3";
-import { makeSortable } from "../sortable.js?v=3";
-import { renderBulkBar, wireSelectCheckboxes } from "../bulk.js?v=3";
-import { computeRollup } from "../finance.js?v=3";
+import { Rooms, Workdays, People, Tasks, Tools, TaskMaterials, TaskTools, Phases, Purchases } from "../db.js?v=4";
+import { renderNav, escapeHtml, reportError, toast, openModal, closeModal, confirmDialog, statusPillClass, checkboxListHtml, euro } from "../ui.js?v=4";
+import { taskCardHtml, wireTaskCards, openTaskForm, TASK_STATUSES } from "../task-shared.js?v=4";
+import { decorateWorkdays, prerequisiteWarning, formatDate, BUITEN_SCOPE_PHASE_NAME } from "../domain.js?v=4";
+import { makeSortable } from "../sortable.js?v=4";
+import { renderBulkBar, wireSelectCheckboxes } from "../bulk.js?v=4";
+import { computeRollup } from "../finance.js?v=4";
 
 renderNav();
 document.getElementById("year").textContent = new Date().getFullYear();
 
-let ROOMS = [], WORKDAYS = [], PEOPLE = [], TASKS = [], DEPS = [], TOOLS = [], TASK_MATERIALS = [], TASK_TOOLS = [], PHASES = [], CATEGORIES = [], PURCHASES = [];
+let ROOMS = [], WORKDAYS = [], PEOPLE = [], TASKS = [], DEPS = [], TOOLS = [], TASK_MATERIALS = [], TASK_TOOLS = [], PHASES = [], PURCHASES = [];
 let filters = { workday: "", person: "", room: "", status: "" };
 const selectedTaskIds = new Set();
 
 async function loadAll() {
-  [ROOMS, WORKDAYS, PEOPLE, TASKS, DEPS, TOOLS, TASK_MATERIALS, TASK_TOOLS, PHASES, CATEGORIES, PURCHASES] = await Promise.all([
+  [ROOMS, WORKDAYS, PEOPLE, TASKS, DEPS, TOOLS, TASK_MATERIALS, TASK_TOOLS, PHASES, PURCHASES] = await Promise.all([
     Rooms.list(), Workdays.list(), People.list(), Tasks.list(), Workdays.dependencies(),
-    Tools.list(), TaskMaterials.listAll(), TaskTools.listAll(), Phases.list(), BudgetCategories.list(), Purchases.list(),
+    Tools.list(), TaskMaterials.listAll(), TaskTools.listAll(), Phases.list(), Purchases.list(),
   ]);
 }
 
 function taskCtx() {
-  return { rooms: ROOMS, workdays: WORKDAYS, people: PEOPLE, phases: PHASES, budgetCategories: CATEGORIES, onChange: render };
+  return { rooms: ROOMS, workdays: WORKDAYS, people: PEOPLE, phases: PHASES, onChange: render };
 }
 
 function matchesFilters(t) {
@@ -81,7 +81,7 @@ function workdayBlockHtml(w, byNumber, showOrderLabels) {
       <div class="mini-progress" style="margin-bottom:10px;"><i style="width:${pct}%"></i></div>
       ${warn ? `<div class="note warn">⏳ ${warn}</div>` : ""}
       ${w.drying_time ? `<div class="note">⏳ Droog-/wachttijd: ${escapeHtml(w.drying_time)}</div>` : ""}
-      <div class="task-list-for-day" data-workday-id="${w.id}">${visibleTasks.length ? visibleTasks.map((t, i) => taskCardHtml(t, { showWorkday: false, workdays: WORKDAYS, purchases: PURCHASES, selectable: true, sortable: showOrderLabels, sortOrderLabel: showOrderLabels ? i + 1 : null })).join("") : '<p class="empty-state">Geen werkzaamheden in dit filter.</p>'}</div>
+      <div class="task-list-for-day" data-workday-id="${w.id}">${visibleTasks.length ? visibleTasks.map((t, i) => taskCardHtml(t, { showWorkday: false, workdays: WORKDAYS, selectable: true, sortable: showOrderLabels, sortOrderLabel: showOrderLabels ? i + 1 : null })).join("") : '<p class="empty-state">Geen werkzaamheden in dit filter.</p>'}</div>
       ${dayMaterials.length ? `
       <h4 class="day-subhead">Materialen voor deze dag</h4>
       <ul class="plain-list">${dayMaterials.map((m) => `<li>${escapeHtml(m.name)} <span class="pill ${m.status === "In huis" ? "gedaan" : "open"}">${escapeHtml(m.status)}</span></li>`).join("")}</ul>` : ""}
@@ -97,7 +97,7 @@ function phaseBlockHtml(phase, decoratedByPhase, byNumber, showOrderLabels, inde
   const visibleWorkdays = filters.workday === "unplanned" ? [] : workdays.filter((w) => !filters.workday || filters.workday === w.id);
   const unplanned = TASKS.filter((t) => !t.workday_id && t.phase_id === phase.id && matchesFilters(t));
   const showUnplanned = !filters.workday || filters.workday === "unplanned";
-  const { assigned, committed, paid } = computeRollup({ tasks: TASKS, purchases: PURCHASES, phaseId: phase.id });
+  const { estimatedTotal, actualTotal } = computeRollup({ purchases: PURCHASES, tasks: TASKS, phaseId: phase.id });
   if (filters.workday && filters.workday !== "unplanned" && !visibleWorkdays.length) return "";
 
   return `
@@ -106,7 +106,7 @@ function phaseBlockHtml(phase, decoratedByPhase, byNumber, showOrderLabels, inde
         <div>
           <h2 style="color:${phase.color || "inherit"};">${escapeHtml(phase.name)}</h2>
           ${phase.description ? `<p class="phase-desc">${escapeHtml(phase.description)}</p>` : ""}
-          <div class="phase-budget-line">Begroot ${euro(assigned)} · Verplicht ${euro(committed)} · Betaald ${euro(paid)}</div>
+          <div class="phase-budget-line">Begroot ${euro(estimatedTotal)} · Werkelijk ${euro(actualTotal)}</div>
         </div>
         <div class="phase-actions">
           <button type="button" class="btn-icon phase-up-btn" data-id="${phase.id}" ${index === 0 ? "disabled" : ""}>↑</button>
@@ -118,7 +118,7 @@ function phaseBlockHtml(phase, decoratedByPhase, byNumber, showOrderLabels, inde
       ${showUnplanned ? `
       <div class="unplanned-block">
         <div class="workday-block-head"><h3>Nog in te plannen</h3><span class="workday-block-meta">${unplanned.length} werkzaamheden</span></div>
-        ${unplanned.length ? unplanned.map((t) => taskCardHtml(t, { workdays: WORKDAYS, purchases: PURCHASES, selectable: true })).join("") : '<p class="empty-state">Niets nog in te plannen in deze fase.</p>'}
+        ${unplanned.length ? unplanned.map((t) => taskCardHtml(t, { workdays: WORKDAYS, selectable: true })).join("") : '<p class="empty-state">Niets nog in te plannen in deze fase.</p>'}
       </div>` : ""}
       ${visibleWorkdays.map((w) => workdayBlockHtml(w, byNumber, showOrderLabels)).join("")}
     </section>`;
@@ -158,18 +158,24 @@ async function render() {
     });
 
     const showOrderLabels = !filters.person && !filters.room && !filters.status;
-    const phaseBlocks = PHASES.map((phase, i) => phaseBlockHtml(phase, decoratedByPhase, byNumber, showOrderLabels, i, PHASES.length)).join("");
+    const activePhases = PHASES.filter((p) => p.name !== BUITEN_SCOPE_PHASE_NAME);
+    const phaseBlocks = activePhases.map((phase, i) => phaseBlockHtml(phase, decoratedByPhase, byNumber, showOrderLabels, i, activePhases.length)).join("");
 
     const orphanWorkdays = decoratedByPhase.get("none") || [];
     const orphanTasks = TASKS.filter((t) => !t.workday_id && !t.phase_id && matchesFilters(t));
     const orphanHtml = (orphanWorkdays.length || orphanTasks.length) ? `
       <section class="phase-block" style="border-left-color:var(--text-muted);">
         <div class="phase-head"><div><h2>Geen fase</h2></div></div>
-        ${orphanTasks.length ? orphanTasks.map((t) => taskCardHtml(t, { workdays: WORKDAYS, purchases: PURCHASES, selectable: true })).join("") : ""}
+        ${orphanTasks.length ? orphanTasks.map((t) => taskCardHtml(t, { workdays: WORKDAYS, selectable: true })).join("") : ""}
         ${orphanWorkdays.map((w) => workdayBlockHtml(w, byNumber, showOrderLabels)).join("")}
       </section>` : "";
 
-    root.innerHTML = phaseBlocks + orphanHtml;
+    const buitenScopePhase = PHASES.find((p) => p.name === BUITEN_SCOPE_PHASE_NAME);
+    const buitenScopeCount = buitenScopePhase ? TASKS.filter((t) => t.phase_id === buitenScopePhase.id).length : 0;
+    const buitenScopeHtml = buitenScopePhase ? `
+      <a href="buiten-scope.html" class="buiten-scope-teaser">Buiten scope / later: ${buitenScopeCount} ${buitenScopeCount === 1 ? "item" : "items"} bewust nu niet uitgevoerd →</a>` : "";
+
+    root.innerHTML = phaseBlocks + orphanHtml + buitenScopeHtml;
     wireTaskCards(root, TASKS, taskCtx());
     wireBulk(root);
 
@@ -218,13 +224,13 @@ async function render() {
     root.querySelectorAll(".phase-up-btn, .phase-down-btn").forEach((btn) => {
       btn.addEventListener("click", async () => {
         const id = btn.dataset.id;
-        const idx = PHASES.findIndex((p) => p.id === id);
+        const idx = activePhases.findIndex((p) => p.id === id);
         const swapWith = btn.classList.contains("phase-up-btn") ? idx - 1 : idx + 1;
-        if (swapWith < 0 || swapWith >= PHASES.length) return;
+        if (swapWith < 0 || swapWith >= activePhases.length) return;
         try {
           await Promise.all([
-            Phases.update(PHASES[idx].id, { sort_order: PHASES[swapWith].sort_order }),
-            Phases.update(PHASES[swapWith].id, { sort_order: PHASES[idx].sort_order }),
+            Phases.update(activePhases[idx].id, { sort_order: activePhases[swapWith].sort_order }),
+            Phases.update(activePhases[swapWith].id, { sort_order: activePhases[idx].sort_order }),
           ]);
           render();
         } catch (err) { reportError(err, "volgorde wijzigen"); }
@@ -305,7 +311,7 @@ function openWorkdayForm() {
       <div class="form-grid">
         <div class="form-field"><label>Nummer</label><input type="number" name="number" required value="${nextNumber}"></div>
         <div class="form-field"><label>Datum</label><input type="date" name="date"></div>
-        <div class="form-field"><label>Fase</label><select name="phase_id">${PHASES.map((p) => `<option value="${p.id}">${escapeHtml(p.name)}</option>`).join("")}</select></div>
+        <div class="form-field"><label>Fase</label><select name="phase_id">${PHASES.filter((p) => p.name !== BUITEN_SCOPE_PHASE_NAME).map((p) => `<option value="${p.id}">${escapeHtml(p.name)}</option>`).join("")}</select></div>
       </div>
       <div class="modal-actions">
         <button type="button" class="btn-secondary" id="workday-cancel-btn">Annuleren</button>

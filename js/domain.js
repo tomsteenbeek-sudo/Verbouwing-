@@ -59,3 +59,14 @@ export function formatDate(dateStr) {
   const d = new Date(dateStr + "T00:00:00");
   return d.toLocaleDateString("nl-NL", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
 }
+
+// Items in de "Buiten scope / later"-fase mogen de actieve planning, voortgang
+// en waarschuwingen niet vervuilen — ze blijven bewaard maar tellen nergens mee
+// totdat ze weer naar een actieve fase worden verplaatst.
+export const BUITEN_SCOPE_PHASE_NAME = "Buiten scope / later";
+
+export function activeTasks(tasks, phases) {
+  const buitenScope = phases.find((p) => p.name === BUITEN_SCOPE_PHASE_NAME);
+  if (!buitenScope) return tasks;
+  return tasks.filter((t) => t.phase_id !== buitenScope.id);
+}

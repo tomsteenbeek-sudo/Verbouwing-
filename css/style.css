@@ -391,6 +391,7 @@ thead th { background: var(--surface-alt); font-family: var(--font-ui); font-siz
 tbody tr:last-child td { border-bottom: none; }
 tfoot td { font-weight: 700; background: var(--surface-alt); }
 td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+td .sub { font-size: 0.78rem; color: var(--text-muted); font-family: var(--font-ui); white-space: nowrap; }
 
 .pill { display: inline-block; font-family: var(--font-ui); font-size: 0.72rem; font-weight: 700; padding: 3px 10px; border-radius: 999px; white-space: nowrap; }
 .pill.gedaan { background: var(--ok-soft); color: var(--ok); }
@@ -731,6 +732,17 @@ footer { font-family: var(--font-ui); }
 .phase-budget-line { font-family: var(--font-ui); font-size: 0.78rem; color: var(--text-muted); }
 .phase-actions { display: flex; gap: 6px; flex-wrap: wrap; }
 .phase-actions button:disabled { opacity: 0.35; cursor: default; }
+.buiten-scope-teaser {
+  display: block;
+  margin-top: 24px;
+  padding: 14px 18px;
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  color: var(--text-muted);
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+.buiten-scope-teaser:hover { color: var(--text); border-color: var(--text-muted); }
 
 @media (max-width: 760px) {
   .form-grid { grid-template-columns: 1fr; }
